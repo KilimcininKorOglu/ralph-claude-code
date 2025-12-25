@@ -62,6 +62,7 @@ ralph -Monitor
 | `ralph -ResetCircuit` | Reset circuit breaker |
 | `ralph-setup <name>` | Create new project |
 | `ralph-import <file>` | Convert PRD to project |
+| `ralph-prd <file>` | Parse PRD to task-plan format |
 | `ralph-monitor` | Standalone monitor |
 
 ### Ralph Loop Options
@@ -130,6 +131,70 @@ Prevents runaway execution by detecting stagnation:
 | OPEN | Halted (3+ no-progress loops) |
 
 Reset with: `ralph -ResetCircuit`
+
+## PRD Parser
+
+Convert any PRD (Product Requirements Document) to task-plan format using AI:
+
+```powershell
+# Parse PRD with auto-detected AI (claude > droid > aider)
+ralph-prd docs/PRD.md
+
+# Specify AI provider
+ralph-prd docs/PRD.md -AI claude
+ralph-prd docs/PRD.md -AI droid
+ralph-prd docs/PRD.md -AI aider
+
+# Preview without creating files
+ralph-prd docs/PRD.md -DryRun
+
+# List available AI providers
+ralph-prd -List
+```
+
+### PRD Parser Options
+
+```powershell
+ralph-prd <prd-file> [-AI <provider>] [-DryRun] [-OutputDir <dir>]
+                     [-Timeout <seconds>] [-MaxRetries <int>]
+
+-AI <provider>    AI provider: claude, droid, aider, auto (default: auto)
+-DryRun           Preview files without creating them
+-OutputDir        Output directory (default: tasks)
+-Timeout          AI timeout in seconds (default: 1200 / 20 minutes)
+-MaxRetries       Max retry attempts (default: 10)
+-List             List available AI providers
+```
+
+### How PRD Parser Works
+
+1. Reads PRD markdown file
+2. Sends to AI with task-plan format instructions
+3. AI generates feature files with task breakdowns
+4. Creates `tasks/` directory with:
+   - `001-feature-name.md` - Feature files with tasks
+   - `tasks-status.md` - Status tracker
+
+### Example Output
+
+```
+[INFO] Reading PRD: docs/PRD.md
+[INFO] PRD size: 45000 characters, 800 lines
+[INFO] Using AI: claude
+[INFO] Attempt 1/10...
+[OK] AI completed successfully
+
+[OK] Created: tasks/001-user-authentication.md (F001, T001-T004)
+[OK] Created: tasks/002-dashboard.md (F002, T005-T008)
+[OK] Created: tasks/tasks-status.md
+
+Summary:
+  Features: 2
+  Tasks: 8
+  Estimated: 12 days
+
+Next: Run 'ralph -TaskMode -AutoBranch -AutoCommit' to start
+```
 
 ## Task Mode
 
@@ -301,6 +366,8 @@ Install-Module -Name Pester -Force -SkipPublisherCheck
 | `install.ps1` | Global installation |
 | `setup.ps1` | Project creation |
 | `ralph_import.ps1` | PRD conversion |
+| `ralph-prd.ps1` | PRD to task-plan parser |
+| `lib\AIProvider.ps1` | AI CLI abstraction |
 | `lib\CircuitBreaker.ps1` | Stagnation detection |
 | `lib\ResponseAnalyzer.ps1` | Response analysis |
 | `lib\TaskReader.ps1` | Task file parsing |
