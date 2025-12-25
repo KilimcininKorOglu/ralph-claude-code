@@ -76,6 +76,7 @@ You are a technical project planner. Analyze the PRD below and create task files
 ## EXAMPLE OUTPUT FORMAT
 
 ### FILE: tasks/001-user-authentication.md
+
 # Feature 1: User Authentication
 
 **Feature ID:** F001
@@ -226,6 +227,7 @@ Unit tests for authentication flow.
 ---
 
 ### FILE: tasks/tasks-status.md
+
 # Task Status Tracker
 
 **Last Updated:** {CURRENT_DATE}
@@ -256,6 +258,7 @@ Unit tests for authentication flow.
 
 ---
 {INCREMENTAL_CONTEXT}
-## NOW PARSE THIS PRD:
+
+## NOW PARSE THIS PRD
 
 {PRD_CONTENT}
