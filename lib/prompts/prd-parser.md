@@ -255,7 +255,7 @@ Unit tests for authentication flow.
 | T004 | Auth Unit Tests   | F001    | NOT_STARTED | P2       |
 
 ---
-
+{INCREMENTAL_CONTEXT}
 ## NOW PARSE THIS PRD:
 
 {PRD_CONTENT}

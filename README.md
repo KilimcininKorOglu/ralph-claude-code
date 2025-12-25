@@ -158,21 +158,47 @@ ralph-prd -List
 ```powershell
 ralph-prd <prd-file> [-AI <provider>] [-DryRun] [-OutputDir <dir>]
                      [-Timeout <seconds>] [-MaxRetries <int>]
+                     [-Force] [-Clean]
 
 -AI <provider>    AI provider: claude, droid, aider, auto (default: auto)
 -DryRun           Preview files without creating them
 -OutputDir        Output directory (default: tasks)
 -Timeout          AI timeout in seconds (default: 1200 / 20 minutes)
 -MaxRetries       Max retry attempts (default: 10)
+-Force            Overwrite NOT_STARTED features with new content
+-Clean            Remove all existing tasks, start fresh
 -List             List available AI providers
 ```
+
+### Incremental Updates
+
+By default, ralph-prd runs in incremental mode when tasks already exist:
+
+```powershell
+# First run - creates all features
+ralph-prd docs/PRD.md
+
+# PRD updated with new features
+ralph-prd docs/PRD.md
+# Only adds new features, preserves existing progress
+
+# Force clean start
+ralph-prd docs/PRD.md -Clean
+```
+
+Incremental mode behavior:
+- Completed features are never overwritten
+- In-progress features are preserved
+- Only new features from PRD are added
+- Task IDs continue from highest existing ID
 
 ### How PRD Parser Works
 
 1. Reads PRD markdown file
-2. Sends to AI with task-plan format instructions
-3. AI generates feature files with task breakdowns
-4. Creates `tasks/` directory with:
+2. Checks for existing tasks (incremental mode)
+3. Sends to AI with task-plan format instructions
+4. AI generates only new feature files
+5. Creates/updates `tasks/` directory with:
    - `001-feature-name.md` - Feature files with tasks
    - `tasks-status.md` - Status tracker
 

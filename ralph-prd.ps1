@@ -25,7 +25,11 @@ param(
     
     [int]$Timeout = 1200,
     
-    [int]$MaxRetries = 10
+    [int]$MaxRetries = 10,
+    
+    # Incremental update options
+    [switch]$Force,     # Overwrite NOT_STARTED features
+    [switch]$Clean      # Remove all existing tasks, start fresh
 )
 
 $ErrorActionPreference = "Stop"
@@ -33,11 +37,192 @@ $ErrorActionPreference = "Stop"
 # Get script directory
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 
-# Import AIProvider module
+# Import modules
 . "$scriptDir\lib\AIProvider.ps1"
+. "$scriptDir\lib\TaskReader.ps1"
 
 # Get prompt template path
 $promptTemplatePath = "$scriptDir\lib\prompts\prd-parser.md"
+
+function Get-ExistingTaskState {
+    <#
+    .SYNOPSIS
+        Reads current task state from tasks directory
+    #>
+    param([string]$TasksDir = "tasks")
+    
+    $state = @{
+        Features = @{}
+        HighestFeatureId = 0
+        HighestTaskId = 0
+        HasTasks = $false
+    }
+    
+    if (-not (Test-Path $TasksDir)) {
+        return $state
+    }
+    
+    $files = Get-ChildItem -Path $TasksDir -Filter "*.md" -ErrorAction SilentlyContinue
+    if (-not $files -or $files.Count -eq 0) {
+        return $state
+    }
+    
+    foreach ($file in $files) {
+        # Skip status files
+        if ($file.Name -match "status") { continue }
+        
+        $content = Get-Content $file.FullName -Raw -ErrorAction SilentlyContinue
+        if (-not $content) { continue }
+        
+        # Extract feature info
+        $featureIdMatch = [regex]::Match($content, "\*\*Feature ID:\*\*\s*(F(\d+))")
+        if (-not $featureIdMatch.Success) { continue }
+        
+        $featureId = $featureIdMatch.Groups[1].Value
+        $featureNum = [int]$featureIdMatch.Groups[2].Value
+        
+        if ($featureNum -gt $state.HighestFeatureId) {
+            $state.HighestFeatureId = $featureNum
+        }
+        
+        # Extract feature name
+        $nameMatch = [regex]::Match($content, "^# Feature \d+:\s*(.+)$", [System.Text.RegularExpressions.RegexOptions]::Multiline)
+        $featureName = if ($nameMatch.Success) { $nameMatch.Groups[1].Value.Trim() } else { "" }
+        
+        # Extract feature status
+        $statusMatch = [regex]::Match($content, "\*\*Status:\*\*\s*(NOT_STARTED|IN_PROGRESS|COMPLETED|BLOCKED)")
+        $featureStatus = if ($statusMatch.Success) { $statusMatch.Groups[1].Value } else { "NOT_STARTED" }
+        
+        # Extract tasks
+        $taskMatches = [regex]::Matches($content, "### (T(\d+)):\s*(.+)")
+        $tasks = @{}
+        
+        foreach ($tm in $taskMatches) {
+            $taskId = $tm.Groups[1].Value
+            $taskNum = [int]$tm.Groups[2].Value
+            $taskName = $tm.Groups[3].Value.Trim()
+            
+            if ($taskNum -gt $state.HighestTaskId) {
+                $state.HighestTaskId = $taskNum
+            }
+            
+            # Find task status
+            $taskStatusPattern = "### $taskId.*?\*\*Status:\*\*\s*(NOT_STARTED|IN_PROGRESS|COMPLETED|BLOCKED)"
+            $taskStatusMatch = [regex]::Match($content, $taskStatusPattern, [System.Text.RegularExpressions.RegexOptions]::Singleline)
+            $taskStatus = if ($taskStatusMatch.Success) { $taskStatusMatch.Groups[1].Value } else { "NOT_STARTED" }
+            
+            $tasks[$taskId] = @{
+                Name = $taskName
+                Status = $taskStatus
+            }
+        }
+        
+        $state.Features[$featureId] = @{
+            Name = $featureName
+            Status = $featureStatus
+            Tasks = $tasks
+            FileName = $file.Name
+            FilePath = $file.FullName
+        }
+        
+        $state.HasTasks = $true
+    }
+    
+    return $state
+}
+
+function Get-FeatureProgress {
+    <#
+    .SYNOPSIS
+        Calculates progress percentage for a feature
+    #>
+    param([hashtable]$Feature)
+    
+    $total = $Feature.Tasks.Count
+    if ($total -eq 0) { return 0 }
+    
+    $completed = ($Feature.Tasks.Values | Where-Object { $_.Status -eq "COMPLETED" }).Count
+    return [Math]::Round(($completed / $total) * 100)
+}
+
+function Test-FeatureHasProgress {
+    <#
+    .SYNOPSIS
+        Checks if any task in feature has been started or completed
+    #>
+    param([hashtable]$Feature)
+    
+    foreach ($task in $Feature.Tasks.Values) {
+        if ($task.Status -ne "NOT_STARTED") {
+            return $true
+        }
+    }
+    return $false
+}
+
+function Write-IncrementalSummary {
+    <#
+    .SYNOPSIS
+        Displays summary of incremental changes
+    #>
+    param(
+        [hashtable]$ExistingState,
+        [int]$NewFeatureCount,
+        [int]$NewTaskCount
+    )
+    
+    Write-Host ""
+    Write-Host "Incremental Update Summary:" -ForegroundColor Cyan
+    Write-Host ""
+    
+    # Preserved features
+    $preserved = @()
+    $completed = @()
+    $inProgress = @()
+    
+    foreach ($fid in $ExistingState.Features.Keys) {
+        $f = $ExistingState.Features[$fid]
+        $progress = Get-FeatureProgress -Feature $f
+        
+        if ($f.Status -eq "COMPLETED" -or $progress -eq 100) {
+            $completed += "  $fid`: $($f.Name) - 100%"
+        }
+        elseif (Test-FeatureHasProgress -Feature $f) {
+            $inProgress += "  $fid`: $($f.Name) - $progress%"
+        }
+        else {
+            $preserved += "  $fid`: $($f.Name)"
+        }
+    }
+    
+    if ($completed.Count -gt 0) {
+        Write-Host "Preserved (completed):" -ForegroundColor Green
+        $completed | ForEach-Object { Write-Host $_ -ForegroundColor Green }
+        Write-Host ""
+    }
+    
+    if ($inProgress.Count -gt 0) {
+        Write-Host "Preserved (in progress):" -ForegroundColor Yellow
+        $inProgress | ForEach-Object { Write-Host $_ -ForegroundColor Yellow }
+        Write-Host ""
+    }
+    
+    if ($preserved.Count -gt 0) {
+        Write-Host "Preserved (not started):" -ForegroundColor Gray
+        $preserved | ForEach-Object { Write-Host $_ -ForegroundColor Gray }
+        Write-Host ""
+    }
+    
+    if ($NewFeatureCount -gt 0) {
+        Write-Host "Added:" -ForegroundColor Cyan
+        Write-Host "  $NewFeatureCount new feature(s) with $NewTaskCount task(s)" -ForegroundColor Cyan
+        Write-Host ""
+    }
+    else {
+        Write-Host "No new features to add." -ForegroundColor Yellow
+        Write-Host ""
+    }
+}
 
 function Show-Usage {
     Write-Host ""
@@ -55,7 +240,13 @@ function Show-Usage {
     Write-Host "  -OutputDir     Output directory (default: tasks)"
     Write-Host "  -Timeout       AI timeout in seconds (default: 1200)"
     Write-Host "  -MaxRetries    Max retry attempts (default: 10)"
+    Write-Host "  -Force         Overwrite NOT_STARTED features with new content"
+    Write-Host "  -Clean         Remove all existing tasks, start fresh"
     Write-Host "  -List          List available AI providers"
+    Write-Host ""
+    Write-Host "Incremental Update:" -ForegroundColor Yellow
+    Write-Host "  By default, ralph-prd preserves existing features and only adds new ones."
+    Write-Host "  Completed and in-progress features are never overwritten."
     Write-Host ""
     Write-Host "Examples:" -ForegroundColor Yellow
     Write-Host "  ralph-prd docs/PRD.md"
@@ -105,7 +296,7 @@ function Write-TaskFiles {
         $file.Content | Out-File -FilePath $filePath -Encoding UTF8 -Force
         
         # Extract stats
-        $featureMatch = [regex]::Match($file.Content, "Feature ID:\s*(F\d+)")
+        $featureMatch = [regex]::Match($file.Content, "\*\*Feature ID:\*\*\s*(F\d+)")
         $taskMatches = [regex]::Matches($file.Content, "### (T\d+):")
         
         $featureId = if ($featureMatch.Success) { $featureMatch.Groups[1].Value } else { "-" }
@@ -195,6 +386,25 @@ Write-Host "Ralph PRD Parser" -ForegroundColor Cyan
 Write-Host "================" -ForegroundColor Cyan
 Write-Host ""
 
+# Handle -Clean flag
+if ($Clean) {
+    if (Test-Path $OutputDir) {
+        Write-Host "[WARN] Removing existing tasks directory: $OutputDir" -ForegroundColor Yellow
+        Remove-Item -Path $OutputDir -Recurse -Force
+        Write-Host "[OK] Tasks directory cleaned" -ForegroundColor Green
+    }
+}
+
+# Check existing task state for incremental update
+$existingState = Get-ExistingTaskState -TasksDir $OutputDir
+$isIncremental = $existingState.HasTasks
+
+if ($isIncremental) {
+    Write-Host "[INFO] Existing tasks found - running in incremental mode" -ForegroundColor Cyan
+    Write-Host "[INFO] Features: $($existingState.Features.Count), Highest ID: F$($existingState.HighestFeatureId)" -ForegroundColor Gray
+    Write-Host "[INFO] Tasks: Highest ID: T$($existingState.HighestTaskId)" -ForegroundColor Gray
+}
+
 # Read and check PRD size
 Write-Host "[INFO] Reading PRD: $PrdFile" -ForegroundColor Cyan
 $prdInfo = Test-PrdSize -PrdFile $PrdFile
@@ -219,8 +429,39 @@ Write-Host "[INFO] Using AI: $AI" -ForegroundColor Cyan
 # Load prompt template
 $promptTemplate = Get-Content $promptTemplatePath -Raw
 
+# Build incremental context if needed
+$incrementalContext = ""
+if ($isIncremental) {
+    $nextFeatureId = $existingState.HighestFeatureId + 1
+    $nextTaskId = $existingState.HighestTaskId + 1
+    
+    $existingFeaturesList = @()
+    foreach ($fid in $existingState.Features.Keys | Sort-Object) {
+        $f = $existingState.Features[$fid]
+        $existingFeaturesList += "- $fid`: $($f.Name)"
+    }
+    
+    $incrementalContext = @"
+
+## INCREMENTAL UPDATE MODE
+
+The following features already exist. DO NOT recreate them:
+$($existingFeaturesList -join "`n")
+
+Start numbering from:
+- Next Feature ID: F$("{0:D3}" -f $nextFeatureId)
+- Next Task ID: T$("{0:D3}" -f $nextTaskId)
+
+ONLY output NEW features that are not listed above.
+If there are no new features to add, output: NO_NEW_FEATURES
+
+"@
+    Write-Host "[INFO] Incremental context added to prompt" -ForegroundColor Gray
+}
+
 # Replace placeholder with PRD content
 $fullPrompt = $promptTemplate -replace '\{PRD_CONTENT\}', $prdInfo.Content
+$fullPrompt = $fullPrompt -replace '\{INCREMENTAL_CONTEXT\}', $incrementalContext
 
 # Call AI with retry
 Write-Host "[INFO] Parsing PRD with $AI..." -ForegroundColor Cyan
@@ -240,18 +481,48 @@ if (-not $result.Success) {
 
 Write-Host ""
 
+# Check for NO_NEW_FEATURES response
+$noNewFeatures = $false
+if ($result.Files.Count -eq 0 -or ($result.RawOutput -and $result.RawOutput -match "NO_NEW_FEATURES")) {
+    $noNewFeatures = $true
+}
+
 # DryRun mode
 if ($DryRun) {
-    Write-FilePreview -Files $result.Files
-    
-    $summary = Get-Summary -Files $result.Files
-    
-    Write-Host "Summary (DryRun):" -ForegroundColor Yellow
-    Write-Host "  Features: $($summary.Features)"
-    Write-Host "  Tasks: $($summary.Tasks)"
-    Write-Host "  Estimated: $($summary.Days) days"
+    if ($noNewFeatures) {
+        Write-Host "No new features detected in PRD." -ForegroundColor Yellow
+        if ($isIncremental) {
+            Write-IncrementalSummary -ExistingState $existingState -NewFeatureCount 0 -NewTaskCount 0
+        }
+    }
+    else {
+        Write-FilePreview -Files $result.Files
+        
+        $summary = Get-Summary -Files $result.Files
+        
+        Write-Host "Summary (DryRun):" -ForegroundColor Yellow
+        Write-Host "  New Features: $($summary.Features)"
+        Write-Host "  New Tasks: $($summary.Tasks)"
+        Write-Host "  Estimated: $($summary.Days) days"
+        
+        if ($isIncremental) {
+            Write-Host ""
+            Write-Host "Existing features will be preserved." -ForegroundColor Gray
+        }
+    }
     Write-Host ""
     Write-Host "Run without -DryRun to create files." -ForegroundColor Cyan
+    exit 0
+}
+
+# Handle no new features case
+if ($noNewFeatures) {
+    Write-Host "No new features detected in PRD." -ForegroundColor Yellow
+    if ($isIncremental) {
+        Write-IncrementalSummary -ExistingState $existingState -NewFeatureCount 0 -NewTaskCount 0
+    }
+    Write-Host ""
+    Write-Host "All features in PRD already exist in tasks directory." -ForegroundColor Cyan
     exit 0
 }
 
@@ -263,11 +534,25 @@ Write-Host ""
 # Show summary
 $summary = Get-Summary -Files $result.Files
 
+if ($isIncremental) {
+    Write-IncrementalSummary -ExistingState $existingState -NewFeatureCount $summary.Features -NewTaskCount $summary.Tasks
+}
+
 Write-Host "Summary:" -ForegroundColor Green
-Write-Host "  Features: $($summary.Features)"
-Write-Host "  Tasks: $($summary.Tasks)"
+Write-Host "  New Features: $($summary.Features)"
+Write-Host "  New Tasks: $($summary.Tasks)"
 Write-Host "  Estimated: $($summary.Days) days"
 Write-Host "  Attempts: $($result.Attempts)"
+
+if ($isIncremental) {
+    $totalFeatures = $existingState.Features.Count + $summary.Features
+    $totalTasks = $existingState.HighestTaskId + $summary.Tasks
+    Write-Host ""
+    Write-Host "Total (including existing):" -ForegroundColor Gray
+    Write-Host "  Features: $totalFeatures"
+    Write-Host "  Tasks: ~$totalTasks"
+}
+
 Write-Host ""
 Write-Host "Next: Run 'ralph -TaskMode -AutoBranch -AutoCommit' to start" -ForegroundColor Cyan
 Write-Host ""
