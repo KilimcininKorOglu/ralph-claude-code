@@ -198,26 +198,26 @@ function Read-TasksFromContent {
         }
         
         # Parse Description section
-        if ($taskContent -match "(?ms)####\s*Description\s*\r?\n(.+?)(?=####|$)") {
+        if ($taskContent -match "(?s)####\s*Description\s*\r?\n([\s\S]+?)(?=####|$)") {
             $task.Description = $Matches[1].Trim()
         }
         
         # Parse Technical Details section
-        if ($taskContent -match "(?ms)####\s*Technical Details\s*\r?\n(.+?)(?=####|$)") {
+        if ($taskContent -match "(?s)####\s*Technical Details\s*\r?\n([\s\S]+?)(?=####|$)") {
             $task.TechnicalDetails = $Matches[1].Trim()
         }
         
         # Parse Files to Touch
-        if ($taskContent -match "(?ms)####\s*Files to Touch\s*\r?\n(.+?)(?=####|$)") {
+        if ($taskContent -match "(?s)####\s*Files to Touch\s*\r?\n([\s\S]+?)(?=####|$)") {
             $filesSection = $Matches[1]
-            $fileMatches = [regex]::Matches($filesSection, "[-*]\s*`"?([^`"\r\n]+)`"?\s*\(?(new|update|delete)?\)?")
+            $fileMatches = [regex]::Matches($filesSection, "[-*]\s*``?([^``\r\n]+)``?\s*\(?(new|update|delete)?\)?")
             foreach ($fileMatch in $fileMatches) {
                 $task.FilesToTouch += $fileMatch.Groups[1].Value.Trim().Trim('`')
             }
         }
         
         # Parse Dependencies
-        if ($taskContent -match "(?ms)####\s*Dependencies\s*\r?\n(.+?)(?=####|$)") {
+        if ($taskContent -match "(?s)####\s*Dependencies\s*\r?\n([\s\S]+?)(?=####|$)") {
             $depsSection = $Matches[1]
             $depMatches = [regex]::Matches($depsSection, "(T\d+)")
             foreach ($depMatch in $depMatches) {
@@ -228,9 +228,9 @@ function Read-TasksFromContent {
         }
         
         # Parse Success Criteria
-        if ($taskContent -match "(?ms)####\s*Success Criteria\s*\r?\n(.+?)(?=####|---|$)") {
+        if ($taskContent -match "(?s)####\s*Success Criteria\s*\r?\n([\s\S]+?)(?=####|---|$)") {
             $criteriaSection = $Matches[1]
-            $criteriaMatches = [regex]::Matches($criteriaSection, "[-*]\s*\[[ x]\]\s*(.+?)(?=\r?\n|$)")
+            $criteriaMatches = [regex]::Matches($criteriaSection, "[-*]\s*\[[ x]\]\s*(.+)")
             foreach ($criteriaMatch in $criteriaMatches) {
                 $task.SuccessCriteria += $criteriaMatch.Groups[1].Value.Trim()
             }
@@ -342,7 +342,8 @@ function Get-TasksByStatus {
     )
     
     $allTasks = Get-AllTasks -BasePath $BasePath
-    return @($allTasks | Where-Object { $_.Status -eq $Status })
+    $filtered = @($allTasks | Where-Object { $_.Status -eq $Status })
+    return ,$filtered
 }
 
 function Get-TasksByFeature {
@@ -360,7 +361,8 @@ function Get-TasksByFeature {
     )
     
     $allTasks = Get-AllTasks -BasePath $BasePath
-    return @($allTasks | Where-Object { $_.FeatureId -eq $FeatureId })
+    $filtered = @($allTasks | Where-Object { $_.FeatureId -eq $FeatureId })
+    return ,$filtered
 }
 
 function Test-TaskDependenciesMet {

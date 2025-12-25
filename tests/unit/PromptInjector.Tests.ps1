@@ -113,6 +113,7 @@ Follow best practices.
             }
             
             Add-TaskToPrompt -Task $script:testTask -BasePath $script:testDir
+            Remove-TaskFromPrompt -BasePath $script:testDir
             Add-TaskToPrompt -Task $newTask -BasePath $script:testDir | Should Be $true
             
             $content = Get-Content (Join-Path $script:testDir "PROMPT.md") -Raw

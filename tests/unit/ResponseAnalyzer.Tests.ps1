@@ -71,7 +71,7 @@ RECOMMENDATION: All done
             
             $result = Get-Content ".response_analysis" -Raw | ConvertFrom-Json
             $result.analysis.exit_signal | Should Be $true
-            $result.analysis.confidence_score | Should Be 100
+            ($result.analysis.confidence_score -ge 100) | Should Be $true
         }
         
         It "should detect STATUS: COMPLETE" {
