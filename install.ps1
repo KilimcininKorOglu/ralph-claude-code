@@ -152,7 +152,8 @@ function Install-Scripts {
         "ralph_loop.ps1",
         "ralph_monitor.ps1",
         "setup.ps1",
-        "ralph_import.ps1"
+        "ralph_import.ps1",
+        "ralph-prd.ps1"
     )
     
     foreach ($scriptName in $mainScripts) {
@@ -256,6 +257,22 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File "%LOCALAPPDATA%\Ralph\ralph_import
 & (Join-Path `$RalphHome "ralph_import.ps1") @args
 "@
     $importPs1 | Set-Content (Join-Path $script:BinDir "ralph-import.ps1") -Encoding UTF8
+    
+    # ralph-prd.cmd
+    $prdCmd = @"
+@echo off
+pwsh -NoProfile -ExecutionPolicy Bypass -File "%LOCALAPPDATA%\Ralph\ralph-prd.ps1" %*
+"@
+    $prdCmd | Set-Content (Join-Path $script:BinDir "ralph-prd.cmd") -Encoding ASCII
+    
+    # ralph-prd.ps1
+    $prdPs1 = @"
+#Requires -Version 7.0
+# Ralph PRD Parser - PowerShell Wrapper
+`$RalphHome = Join-Path `$env:LOCALAPPDATA "Ralph"
+& (Join-Path `$RalphHome "ralph-prd.ps1") @args
+"@
+    $prdPs1 | Set-Content (Join-Path $script:BinDir "ralph-prd.ps1") -Encoding UTF8
     
     Write-Log -Level "SUCCESS" -Message "Command wrappers created in $script:BinDir"
 }
@@ -371,6 +388,7 @@ function Install-Ralph {
     Write-Host "  ralph -Help              Show Ralph options"
     Write-Host "  ralph-setup my-project   Create new Ralph project"
     Write-Host "  ralph-import prd.md      Convert PRD to Ralph project"
+    Write-Host "  ralph-prd prd.md         Parse PRD to task-plan format"
     Write-Host "  ralph-monitor            Manual monitoring dashboard"
     Write-Host ""
     Write-Host "Quick start:" -ForegroundColor Cyan
