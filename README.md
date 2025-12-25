@@ -5,9 +5,10 @@ Native Windows PowerShell autonomous AI development loop system. Supports multip
 ## Features
 
 ### AI Integration
-- **Multi-AI CLI Support** - Works with Claude, Droid, and Aider CLIs
+- **Multi-AI CLI Support** - PRD parsing and feature add work with Claude, Droid, and Aider
 - **Auto-Detection** - Automatically finds available AI CLI (priority: claude > droid > aider)
-- **Provider Selection** - Override with `-AI` flag for any command
+- **Provider Selection** - Override with `-AI` flag for `ralph-prd` and `ralph-add`
+- **Task Execution** - Task Mode (`ralph -TaskMode`) uses Claude CLI only
 
 ### Task Management
 - **PRD Parser (`ralph-prd`)** - Converts PRD documents to structured task files
