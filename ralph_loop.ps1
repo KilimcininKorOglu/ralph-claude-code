@@ -71,6 +71,15 @@ param(
     
     [switch]$TaskStatus,
     
+    # Task status filters
+    [ValidateSet("", "COMPLETED", "IN_PROGRESS", "NOT_STARTED", "BLOCKED")]
+    [string]$StatusFilter = "",
+    
+    [string]$FeatureFilter = "",
+    
+    [ValidateSet("", "P1", "P2", "P3", "P4")]
+    [string]$PriorityFilter = "",
+    
     # Autonomous execution (no confirmation, no pause)
     [switch]$Autonomous,
     
@@ -87,6 +96,7 @@ $script:ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 . "$script:ScriptDir\lib\TaskStatusUpdater.ps1"
 . "$script:ScriptDir\lib\GitBranchManager.ps1"
 . "$script:ScriptDir\lib\PromptInjector.ps1"
+. "$script:ScriptDir\lib\TableFormatter.ps1"
 
 # Configuration
 $script:Config = @{
@@ -157,6 +167,9 @@ function Show-Help {
     Write-Host "    -AutoCommit            Auto-commit on task completion"
     Write-Host "    -StartFrom TXXX        Start from specific task ID"
     Write-Host "    -TaskStatus            Show task progress and exit"
+    Write-Host "    -StatusFilter STATUS   Filter by status (COMPLETED, IN_PROGRESS, NOT_STARTED, BLOCKED)"
+    Write-Host "    -FeatureFilter FXXX    Filter by feature ID"
+    Write-Host "    -PriorityFilter PX     Filter by priority (P1, P2, P3, P4)"
     Write-Host "    -Autonomous            Run without pausing between tasks/features"
     Write-Host "    -MaxConsecutiveErrors  Max errors before stopping (default: 5)"
     Write-Host ""
@@ -180,6 +193,9 @@ function Show-Help {
     Write-Host "    ralph -TaskMode -AutoBranch -AutoCommit -Autonomous"
     Write-Host "    ralph -TaskMode -StartFrom T005"
     Write-Host "    ralph -TaskStatus"
+    Write-Host "    ralph -TaskStatus -StatusFilter BLOCKED"
+    Write-Host "    ralph -TaskStatus -FeatureFilter F001"
+    Write-Host "    ralph -TaskStatus -PriorityFilter P1"
     Write-Host ""
 }
 
@@ -1320,7 +1336,8 @@ if ($Status) {
 }
 
 if ($TaskStatus) {
-    Show-TaskStatus
+    Show-EnhancedTaskStatus -StatusFilter $StatusFilter -FeatureFilter $FeatureFilter `
+        -PriorityFilter $PriorityFilter -BasePath "."
     exit 0
 }
 

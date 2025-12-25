@@ -310,6 +310,36 @@ Autonomous mode features:
 - Error recovery with configurable threshold
 - Final summary showing total duration and statistics
 
+### Task Status with Filtering
+
+View task status with optional filters:
+
+```powershell
+# Full status table
+ralph -TaskStatus
+
+# Filter by status
+ralph -TaskStatus -StatusFilter COMPLETED
+ralph -TaskStatus -StatusFilter BLOCKED
+ralph -TaskStatus -StatusFilter IN_PROGRESS
+
+# Filter by feature
+ralph -TaskStatus -FeatureFilter F001
+
+# Filter by priority
+ralph -TaskStatus -PriorityFilter P1
+
+# Combine filters
+ralph -TaskStatus -StatusFilter NOT_STARTED -PriorityFilter P1
+```
+
+Status table shows:
+- ASCII formatted table with task details
+- Color-coded status (Green=COMPLETED, Yellow=IN_PROGRESS, Red=BLOCKED)
+- Summary statistics with percentages
+- Progress bar visualization
+- Next task recommendation
+
 ### Task File Format
 
 ```markdown
@@ -464,6 +494,7 @@ Install-Module -Name Pester -Force -SkipPublisherCheck
 | `lib\TaskStatusUpdater.ps1` | Task status updates |
 | `lib\GitBranchManager.ps1` | Git branch/commit |
 | `lib\PromptInjector.ps1` | PROMPT.md injection |
+| `lib\TableFormatter.ps1` | ASCII table formatting |
 
 ## Uninstall
 
