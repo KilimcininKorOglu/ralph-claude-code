@@ -103,4 +103,36 @@ Describe "AIProvider Module" {
             $result.IsLarge | Should Be $true
         }
     }
+    
+    Context "Get-AutoProvider" {
+        It "Should return a provider when at least one is available" {
+            # This test depends on actual system availability
+            $result = Get-AutoProvider
+            # Result could be null if no providers installed
+            # In CI, we expect at least one to be available
+            if ($result) {
+                $result | Should Match "^(claude|droid|aider)$"
+            }
+        }
+    }
+    
+    Context "Invoke-TaskExecution" {
+        It "Should return hashtable with expected keys" {
+            # Test with very short timeout to verify return structure
+            $result = Invoke-TaskExecution -Provider "claude" -PromptContent "test" -TimeoutSeconds 1
+            # Result should be a hashtable with Success, Output, Error keys
+            $result | Should Not BeNullOrEmpty
+            $result.ContainsKey("Success") | Should Be $true
+            $result.ContainsKey("Output") | Should Be $true
+            $result.ContainsKey("Error") | Should Be $true
+        }
+        
+        It "Should accept valid provider parameter" {
+            # ValidateSet should accept valid providers
+            # Test only validates the function exists with correct signature
+            $cmd = Get-Command Invoke-TaskExecution -ErrorAction SilentlyContinue
+            $cmd | Should Not BeNullOrEmpty
+            $cmd.Parameters.ContainsKey("Provider") | Should Be $true
+        }
+    }
 }

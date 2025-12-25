@@ -83,13 +83,18 @@ param(
     # Autonomous execution (no confirmation, no pause)
     [switch]$Autonomous,
     
-    [int]$MaxConsecutiveErrors = 5
+    [int]$MaxConsecutiveErrors = 5,
+    
+    # AI Provider selection
+    [ValidateSet("claude", "droid", "aider", "auto")]
+    [string]$AI = "auto"
 )
 
 # Get script directory for module imports
 $script:ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 # Import library modules
+. "$script:ScriptDir\lib\AIProvider.ps1"
 . "$script:ScriptDir\lib\CircuitBreaker.ps1"
 . "$script:ScriptDir\lib\ResponseAnalyzer.ps1"
 . "$script:ScriptDir\lib\TaskReader.ps1"
@@ -98,6 +103,24 @@ $script:ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 . "$script:ScriptDir\lib\PromptInjector.ps1"
 . "$script:ScriptDir\lib\TableFormatter.ps1"
 
+# Resolve AI Provider
+$script:ResolvedAIProvider = if ($AI -eq "auto") {
+    Get-AutoProvider
+} else {
+    $AI
+}
+
+# Validate AI provider
+if (-not $script:ResolvedAIProvider) {
+    Write-Host "[ERROR] No AI provider found. Install claude, droid, or aider." -ForegroundColor Red
+    exit 1
+}
+
+if (-not (Test-AIProvider -Provider $script:ResolvedAIProvider)) {
+    Write-Host "[ERROR] AI provider '$AI' is not installed." -ForegroundColor Red
+    exit 1
+}
+
 # Configuration
 $script:Config = @{
     PromptFile = $Prompt
@@ -105,10 +128,10 @@ $script:Config = @{
     DocsDir = "docs\generated"
     StatusFile = "status.json"
     ProgressFile = "progress.json"
-    ClaudeCommand = "claude"
+    AIProvider = $script:ResolvedAIProvider
+    AITimeoutMinutes = $Timeout
     MaxCallsPerHour = $Calls
     VerboseProgress = $VerboseProgress
-    ClaudeTimeoutMinutes = $Timeout
     CallCountFile = ".call_count"
     TimestampFile = ".last_reset"
     ExitSignalsFile = ".exit_signals"
@@ -142,7 +165,7 @@ function Show-Help {
     #>
     
     Write-Host ""
-    Write-Host "Ralph Loop for Claude Code - Windows PowerShell Version" -ForegroundColor Cyan
+    Write-Host "Ralph Loop - Autonomous AI Development" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "IMPORTANT: This command must be run from a Ralph project directory." -ForegroundColor Yellow
     Write-Host "           Use 'ralph-setup project-name' to create a new project first."
@@ -151,6 +174,7 @@ function Show-Help {
     Write-Host ""
     Write-Host "Options:" -ForegroundColor Yellow
     Write-Host "    -h, -Help              Show this help message"
+    Write-Host "    -AI PROVIDER           AI provider: claude, droid, aider, auto (default: auto)"
     Write-Host "    -c, -Calls NUM         Set max calls per hour (default: 100)"
     Write-Host "    -p, -Prompt FILE       Set prompt file (default: PROMPT.md)"
     Write-Host "    -s, -Status            Show current status and exit"
@@ -191,6 +215,7 @@ function Show-Help {
     Write-Host "Task Mode Examples:" -ForegroundColor Yellow
     Write-Host "    ralph -TaskMode -AutoBranch -AutoCommit"
     Write-Host "    ralph -TaskMode -AutoBranch -AutoCommit -Autonomous"
+    Write-Host "    ralph -TaskMode -AI droid -AutoBranch -AutoCommit"
     Write-Host "    ralph -TaskMode -StartFrom T005"
     Write-Host "    ralph -TaskStatus"
     Write-Host "    ralph -TaskStatus -StatusFilter BLOCKED"
@@ -453,10 +478,10 @@ function Get-ExitReason {
     return ""
 }
 
-function Invoke-ClaudeCode {
+function Invoke-AIExecution {
     <#
     .SYNOPSIS
-        Executes Claude Code with the prompt and handles the response
+        Executes AI provider with the prompt and handles the response
     .PARAMETER LoopCount
         Current loop iteration number
     .OUTPUTS
@@ -466,14 +491,15 @@ function Invoke-ClaudeCode {
         [int]$LoopCount
     )
     
+    $provider = $script:Config.AIProvider
     $timestamp = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
-    $outputFile = Join-Path $script:Config.LogDir "claude_output_$timestamp.log"
+    $outputFile = Join-Path $script:Config.LogDir "${provider}_output_$timestamp.log"
     $callsMade = Add-CallCount
     
-    Write-Status -Level "LOOP" -Message "Executing Claude Code (Call $callsMade/$($script:Config.MaxCallsPerHour))"
+    Write-Status -Level "LOOP" -Message "Executing $provider (Call $callsMade/$($script:Config.MaxCallsPerHour))"
     
-    $timeoutSeconds = $script:Config.ClaudeTimeoutMinutes * 60
-    Write-Status -Level "INFO" -Message "Starting Claude Code execution... (timeout: $($script:Config.ClaudeTimeoutMinutes)m)"
+    $timeoutSeconds = $script:Config.AITimeoutMinutes * 60
+    Write-Status -Level "INFO" -Message "Starting $provider execution... (timeout: $($script:Config.AITimeoutMinutes)m)"
     
     # Check if prompt file exists
     if (-not (Test-Path $script:Config.PromptFile)) {
@@ -485,18 +511,30 @@ function Invoke-ClaudeCode {
         # Read prompt content
         $promptContent = Get-Content $script:Config.PromptFile -Raw
         
-        # Create a temporary file for the prompt
-        $tempPromptFile = [System.IO.Path]::GetTempFileName()
-        $promptContent | Set-Content $tempPromptFile -Encoding UTF8
-        
-        # Start Claude Code as a background job
+        # Start AI execution as a background job
         $job = Start-Job -ScriptBlock {
-            param($promptFile, $claudeCmd)
+            param($content, $provider)
             
-            $content = Get-Content $promptFile -Raw
-            $result = $content | & $claudeCmd 2>&1
-            return $result
-        } -ArgumentList $tempPromptFile, $script:Config.ClaudeCommand
+            switch ($provider) {
+                "claude" {
+                    $content | claude 2>&1
+                }
+                "droid" {
+                    $content | droid exec --auto low 2>&1
+                }
+                "aider" {
+                    $tempFile = [System.IO.Path]::GetTempFileName()
+                    $tempFile = $tempFile -replace '\.tmp$', '.md'
+                    $content | Set-Content $tempFile -Encoding UTF8
+                    try {
+                        aider --yes --no-auto-commits --message "Execute the task described in this file" $tempFile 2>&1
+                    }
+                    finally {
+                        Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
+                    }
+                }
+            }
+        } -ArgumentList $promptContent, $provider
         
         $progressCounter = 0
         $indicators = @("|", "/", "-", "\")
@@ -510,13 +548,14 @@ function Invoke-ClaudeCode {
             # Update progress file for monitor
             @{
                 status = "executing"
+                provider = $provider
                 indicator = $indicator
                 elapsed_seconds = $elapsedSeconds
                 timestamp = (Get-Date -Format "yyyy-MM-dd HH:mm:ss")
             } | ConvertTo-Json | Set-Content $script:Config.ProgressFile -Encoding UTF8
             
             if ($script:Config.VerboseProgress) {
-                Write-Host "`r[$indicator] Claude Code working... ($elapsedSeconds`s elapsed)" -ForegroundColor Cyan -NoNewline
+                Write-Host "`r[$indicator] $provider working... ($elapsedSeconds`s elapsed)" -ForegroundColor Cyan -NoNewline
             }
             
             Start-Sleep -Seconds 5
@@ -525,10 +564,9 @@ function Invoke-ClaudeCode {
             if ($elapsedSeconds -ge $timeoutSeconds) {
                 Stop-Job $job -ErrorAction SilentlyContinue
                 Remove-Job $job -Force -ErrorAction SilentlyContinue
-                Remove-Item $tempPromptFile -Force -ErrorAction SilentlyContinue
                 
                 Write-Host ""
-                Write-Status -Level "ERROR" -Message "Execution timed out after $($script:Config.ClaudeTimeoutMinutes) minutes"
+                Write-Status -Level "ERROR" -Message "Execution timed out after $($script:Config.AITimeoutMinutes) minutes"
                 return 1
             }
         }
@@ -541,27 +579,27 @@ function Invoke-ClaudeCode {
         $output = Receive-Job $job
         $jobState = $job.State
         Remove-Job $job -Force -ErrorAction SilentlyContinue
-        Remove-Item $tempPromptFile -Force -ErrorAction SilentlyContinue
         
         # Write output to file
         if ($output) {
             $output | Out-File $outputFile -Encoding UTF8
         }
         else {
-            "No output received from Claude Code" | Out-File $outputFile -Encoding UTF8
+            "No output received from $provider" | Out-File $outputFile -Encoding UTF8
         }
         
         if ($jobState -eq 'Completed') {
             # Update progress file
             @{
                 status = "completed"
+                provider = $provider
                 timestamp = (Get-Date -Format "yyyy-MM-dd HH:mm:ss")
             } | ConvertTo-Json | Set-Content $script:Config.ProgressFile -Encoding UTF8
             
-            Write-Status -Level "SUCCESS" -Message "Claude Code execution completed successfully"
+            Write-Status -Level "SUCCESS" -Message "$provider execution completed successfully"
             
             # Analyze the response
-            Write-Status -Level "INFO" -Message "Analyzing Claude Code response..."
+            Write-Status -Level "INFO" -Message "Analyzing $provider response..."
             $analysisResult = Invoke-ResponseAnalysis -OutputFile $outputFile -LoopNumber $LoopCount
             
             if ($analysisResult) {
@@ -605,25 +643,27 @@ function Invoke-ClaudeCode {
             # Job failed
             @{
                 status = "failed"
+                provider = $provider
                 timestamp = (Get-Date -Format "yyyy-MM-dd HH:mm:ss")
             } | ConvertTo-Json | Set-Content $script:Config.ProgressFile -Encoding UTF8
             
             # Check if failure is due to API limit
             $outputContent = if ($output) { $output -join "`n" } else { "" }
             if ($outputContent -match "(?i)(5.*hour.*limit|limit.*reached.*try.*back|usage.*limit.*reached)") {
-                Write-Status -Level "ERROR" -Message "Claude API 5-hour usage limit reached"
+                Write-Status -Level "ERROR" -Message "API usage limit reached"
                 return 2
             }
             
-            Write-Status -Level "ERROR" -Message "Claude Code execution failed, check: $outputFile"
+            Write-Status -Level "ERROR" -Message "$provider execution failed, check: $outputFile"
             return 1
         }
     }
     catch {
-        Write-Status -Level "ERROR" -Message "Exception during Claude Code execution: $($_.Exception.Message)"
+        Write-Status -Level "ERROR" -Message "Exception during $provider execution: $($_.Exception.Message)"
         
         @{
             status = "failed"
+            provider = $provider
             error = $_.Exception.Message
             timestamp = (Get-Date -Format "yyyy-MM-dd HH:mm:ss")
         } | ConvertTo-Json | Set-Content $script:Config.ProgressFile -Encoding UTF8
@@ -638,7 +678,8 @@ function Start-RalphLoop {
         Main Ralph loop execution
     #>
     
-    Write-Status -Level "SUCCESS" -Message "Ralph loop starting with Claude Code"
+    Write-Status -Level "SUCCESS" -Message "Ralph loop starting with $($script:Config.AIProvider)"
+    Write-Status -Level "INFO" -Message "AI Provider: $($script:Config.AIProvider)"
     Write-Status -Level "INFO" -Message "Max calls per hour: $($script:Config.MaxCallsPerHour)"
     Write-Status -Level "INFO" -Message "Logs: $($script:Config.LogDir)\ | Status: $($script:Config.StatusFile)"
     
@@ -717,8 +758,8 @@ function Start-RalphLoop {
         Update-LoopStatus -LoopCount $script:LoopCount -CallsMade (Get-CallCount) `
             -LastAction "executing" -Status "running"
         
-        # Execute Claude Code
-        $execResult = Invoke-ClaudeCode -LoopCount $script:LoopCount
+        # Execute AI
+        $execResult = Invoke-AIExecution -LoopCount $script:LoopCount
         
         switch ($execResult) {
             0 {
@@ -1052,6 +1093,7 @@ function Start-TaskModeLoop {
     $script:Config.ErrorsRecovered = 0
     
     Write-Status -Level "SUCCESS" -Message "Ralph Task Mode starting..."
+    Write-Status -Level "INFO" -Message "AI Provider: $($script:Config.AIProvider)"
     Write-Status -Level "INFO" -Message "Tasks directory: $($script:Config.TasksDir)"
     Write-Status -Level "INFO" -Message "Auto-branch: $($script:Config.AutoBranch)"
     Write-Status -Level "INFO" -Message "Auto-commit: $($script:Config.AutoCommit)"
@@ -1235,8 +1277,8 @@ function Start-TaskModeLoop {
             continue
         }
         
-        # Execute Claude Code
-        $execResult = Invoke-ClaudeCode -LoopCount $script:LoopCount
+        # Execute AI
+        $execResult = Invoke-AIExecution -LoopCount $script:LoopCount
         
         if ($execResult -eq 0) {
             # Check if task completed

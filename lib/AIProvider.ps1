@@ -373,6 +373,71 @@ function Invoke-AIWithRetry {
     }
 }
 
+function Invoke-TaskExecution {
+    <#
+    .SYNOPSIS
+        Execute AI for task mode (simpler than PRD parsing)
+    .DESCRIPTION
+        Executes the specified AI provider with prompt content for task execution.
+        Returns output without parsing/validation (task mode handles its own analysis).
+    #>
+    param(
+        [Parameter(Mandatory)]
+        [ValidateSet("claude", "droid", "aider")]
+        [string]$Provider,
+        
+        [Parameter(Mandatory)]
+        [string]$PromptContent,
+        
+        [int]$TimeoutSeconds = 900
+    )
+    
+    $job = Start-Job -ScriptBlock {
+        param($content, $provider)
+        
+        switch ($provider) {
+            "claude" {
+                $content | claude 2>&1
+            }
+            "droid" {
+                $content | droid exec --auto low 2>&1
+            }
+            "aider" {
+                $tempFile = [System.IO.Path]::GetTempFileName()
+                $tempFile = $tempFile -replace '\.tmp$', '.md'
+                $content | Set-Content $tempFile -Encoding UTF8
+                try {
+                    aider --yes --no-auto-commits --message "Execute the task described in this file" $tempFile 2>&1
+                }
+                finally {
+                    Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
+                }
+            }
+        }
+    } -ArgumentList $PromptContent, $Provider
+    
+    $completed = Wait-Job $job -Timeout $TimeoutSeconds
+    
+    if (-not $completed) {
+        Stop-Job $job -ErrorAction SilentlyContinue
+        Remove-Job $job -Force -ErrorAction SilentlyContinue
+        return @{
+            Success = $false
+            Error   = "Timeout after $TimeoutSeconds seconds"
+            Output  = $null
+        }
+    }
+    
+    $output = Receive-Job $job
+    Remove-Job $job -Force
+    
+    return @{
+        Success = $true
+        Output  = $output
+        Error   = $null
+    }
+}
+
 function Write-AIProviderList {
     <#
     .SYNOPSIS
@@ -420,6 +485,7 @@ if ($MyInvocation.ScriptName -match '\.psm1$') {
         'Test-PrdSize',
         'Invoke-AICommand',
         'Invoke-AIWithTimeout',
+        'Invoke-TaskExecution',
         'Split-AIOutput',
         'Test-ParsedOutput',
         'Invoke-AIWithRetry',

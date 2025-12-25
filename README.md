@@ -5,42 +5,49 @@ Native Windows PowerShell autonomous AI development loop system. Supports multip
 ## Features
 
 ### AI Integration
-- **Multi-AI CLI Support** - PRD parsing and feature add work with Claude, Droid, and Aider
+
+- **Multi-AI CLI Support** - Works with Claude, Droid, and Aider CLIs
 - **Auto-Detection** - Automatically finds available AI CLI (priority: claude > droid > aider)
-- **Provider Selection** - Override with `-AI` flag for `ralph-prd` and `ralph-add`
-- **Task Execution** - Task Mode (`ralph -TaskMode`) uses Claude CLI only
+- **Provider Selection** - Override with `-AI` flag for all commands
+- **Task Execution** - Task Mode supports all AI providers via `-AI` flag
 
 ### Task Management
+
 - **PRD Parser (`ralph-prd`)** - Converts PRD documents to structured task files
 - **Feature Add (`ralph-add`)** - Add single features inline or from file
 - **Incremental Updates** - Re-run PRD parser without losing progress
 - **ID Continuity** - Feature and Task IDs auto-increment across all files
 
 ### Task Mode Execution
+
 - **Automatic Branching** - Creates feature branches (e.g., `feature/F001-authentication`)
 - **Automatic Commits** - Commits on task completion with conventional format
 - **Autonomous Mode** - Runs all tasks/features without pausing
 - **Dependency Tracking** - Respects task dependencies before execution
 
 ### Status and Filtering
+
 - **ASCII Status Tables** - Beautiful table display with `ralph -TaskStatus`
 - **Status Filtering** - Filter by COMPLETED, IN_PROGRESS, NOT_STARTED, BLOCKED
 - **Feature Filtering** - Filter tasks by Feature ID (e.g., `-FeatureFilter F001`)
 - **Priority Filtering** - Filter by P1, P2, P3, P4
 
 ### Resume and Recovery
+
 - **Automatic Resume** - Detects interrupted runs, resumes from checkpoint
 - **Branch Restoration** - Switches to correct feature branch on resume
 - **Progress History** - Tracks task completion with timestamps
 - **Error Log** - Records errors with retry attempts
 
 ### Safety and Control
+
 - **Circuit Breaker** - Detects stagnation (no-progress loops)
 - **Rate Limiting** - Configurable API calls per hour
 - **Max Errors Threshold** - Stops after N consecutive errors
 - **Execution Timeout** - Configurable timeout per AI execution
 
 ### Monitoring
+
 - **Live Dashboard** - Real-time monitoring with `ralph -Monitor`
 - **Progress Bars** - Visual progress display in autonomous mode
 - **Completion Summaries** - Task and feature completion reports
@@ -127,6 +134,7 @@ Ralph automatically detects available AI CLIs. Use `-AI` flag to specify:
 ```powershell
 ralph-prd docs/PRD.md -AI droid
 ralph-add "feature" -AI aider
+ralph -TaskMode -AI droid -AutoBranch -AutoCommit
 ```
 
 ### Ralph Loop Options
@@ -134,12 +142,13 @@ ralph-add "feature" -AI aider
 ```powershell
 ralph [-Monitor] [-Calls <int>] [-Timeout <int>] [-VerboseProgress]
       [-Status] [-ResetCircuit] [-CircuitStatus] [-Help]
-      [-TaskMode] [-AutoBranch] [-AutoCommit] [-StartFrom <TaskId>]
-      [-TaskStatus]
+      [-AI <provider>] [-TaskMode] [-AutoBranch] [-AutoCommit]
+      [-StartFrom <TaskId>] [-TaskStatus]
 
+-AI <provider>    AI provider: claude, droid, aider, auto (default: auto)
 -Monitor          Start with separate monitoring window
 -Calls <int>      Max API calls per hour (default: 100)
--Timeout <int>    Claude timeout in minutes (default: 15)
+-Timeout <int>    AI timeout in minutes (default: 15)
 -VerboseProgress  Show detailed progress during execution
 -Status           Show current loop status
 -ResetCircuit     Reset circuit breaker to CLOSED
@@ -179,6 +188,7 @@ my-project/
 ### Intelligent Exit Detection
 
 Ralph automatically stops when it detects:
+
 - All tasks in `@fix_plan.md` marked complete
 - Multiple consecutive "done" signals from Claude
 - Too many test-only loops (no implementation)
@@ -250,6 +260,7 @@ ralph-prd docs/PRD.md -Clean
 ```
 
 Incremental mode behavior:
+
 - Completed features are never overwritten
 - In-progress features are preserved
 - Only new features from PRD are added
@@ -392,6 +403,7 @@ ralph -TaskMode -Autonomous -MaxConsecutiveErrors 10
 ```
 
 Autonomous mode features:
+
 - Automatic continuation between tasks
 - Automatic continuation between features
 - Progress bar display after each task
@@ -423,6 +435,7 @@ ralph -TaskStatus -StatusFilter NOT_STARTED -PriorityFilter P1
 ```
 
 Status table shows:
+
 - ASCII formatted table with task details
 - Color-coded status (Green=COMPLETED, Yellow=IN_PROGRESS, Red=BLOCKED)
 - Summary statistics with percentages
@@ -444,12 +457,14 @@ ralph -TaskMode -AutoBranch -AutoCommit
 ```
 
 Resume features:
+
 - Detects `run-state.md` with IN_PROGRESS status
 - Automatically switches to correct feature branch
 - Continues from next uncompleted task
 - Preserves error log and progress history
 
 The `run-state.md` file tracks:
+
 - Current task and feature position
 - Branch information
 - Progress history with timestamps
@@ -658,6 +673,7 @@ File cannot be loaded because running scripts is disabled
 ```
 
 Fix:
+
 ```powershell
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
@@ -669,6 +685,7 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
 
 Fix:
+
 ```powershell
 npm install -g @anthropic-ai/claude-code
 ```
