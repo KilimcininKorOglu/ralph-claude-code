@@ -280,6 +280,7 @@ Create users table.
 | Task ID    | T + 3 digits  | T001, T002, T003  |
 
 **Important:** Task IDs continue across ALL features:
+
 - F001: T001, T002, T003
 - F002: T004, T005, T006
 
@@ -670,6 +671,7 @@ File cannot be loaded because running scripts is disabled
 ```
 
 **Solution:**
+
 ```powershell
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
@@ -681,6 +683,7 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
 
 **Solution:**
+
 ```powershell
 # Claude
 npm install -g @anthropic-ai/claude-code
@@ -704,17 +707,21 @@ CIRCUIT BREAKER OPENED - Execution halted
 ```
 
 **Solution:**
+
 1. Review recent logs:
+
    ```powershell
    Get-Content logs\ralph.log -Tail 20
    ```
 
 2. Check AI output:
+
    ```powershell
    Get-ChildItem logs\*_output_*.log | Sort-Object LastWriteTime -Descending | Select-Object -First 1
    ```
 
 3. Fix the issue and reset:
+
    ```powershell
    ralph -ResetCircuit
    ```
@@ -726,6 +733,7 @@ Task not found: T005
 ```
 
 **Solution:**
+
 - Ensure task ID is typed correctly
 - Check that `tasks/` directory exists
 - List existing tasks with `ralph -TaskStatus`
@@ -773,13 +781,6 @@ Invoke-Pester -Path tests/unit/ -PassThru
 ```
 
 ---
-
-## Additional Resources
-
-- [README.md](../README.md) - Project overview
-- [CLAUDE.md](../CLAUDE.md) - Guide for Claude Code
-- [AGENTS.md](../AGENTS.md) - Guide for AI agents
-- [plan/](../plan/) - Development plans
 
 ---
 
