@@ -187,6 +187,14 @@ function New-HermesProject {
         $gitignore | Set-Content ".gitignore" -Encoding UTF8
         Write-Host "[OK] Created: .gitignore" -ForegroundColor Green
         
+        # Create project config if ConfigManager is available
+        $configManagerPath = Join-Path $script:HermesHome "lib\ConfigManager.ps1"
+        if (Test-Path $configManagerPath) {
+            . $configManagerPath
+            Initialize-ProjectConfig -BasePath "." -Force | Out-Null
+            Write-Host "[OK] Created: hermes.config.json" -ForegroundColor Green
+        }
+        
         # Initialize git repository
         try {
             $gitOutput = git init 2>&1
