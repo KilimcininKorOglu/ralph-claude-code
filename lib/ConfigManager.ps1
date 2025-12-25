@@ -245,16 +245,8 @@ function Initialize-ProjectConfig {
         return $false
     }
     
-    $projectConfig = @{
-        ai = @{
-            provider = "auto"
-            timeout = 300
-        }
-        taskMode = @{
-            autoBranch = $false
-            autoCommit = $false
-        }
-    }
+    # Use full default config for project
+    $projectConfig = Get-DefaultConfig
     
     $json = $projectConfig | ConvertTo-Json -Depth 10
     $json | Set-Content $configPath -Encoding UTF8
