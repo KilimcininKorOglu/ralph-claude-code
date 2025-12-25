@@ -4,14 +4,45 @@ Native Windows PowerShell autonomous AI development loop system. Supports multip
 
 ## Features
 
-- Multi-AI CLI support (claude, droid, aider)
-- Task-plan integration with automatic branching and commits
-- PRD to task-plan conversion
-- Incremental updates (preserves completed work)
-- Autonomous execution mode
-- Automatic resume from interruptions
-- ASCII status tables with filtering
-- Circuit breaker for stagnation detection
+### AI Integration
+- **Multi-AI CLI Support** - Works with Claude, Droid, and Aider CLIs
+- **Auto-Detection** - Automatically finds available AI CLI (priority: claude > droid > aider)
+- **Provider Selection** - Override with `-AI` flag for any command
+
+### Task Management
+- **PRD Parser (`ralph-prd`)** - Converts PRD documents to structured task files
+- **Feature Add (`ralph-add`)** - Add single features inline or from file
+- **Incremental Updates** - Re-run PRD parser without losing progress
+- **ID Continuity** - Feature and Task IDs auto-increment across all files
+
+### Task Mode Execution
+- **Automatic Branching** - Creates feature branches (e.g., `feature/F001-authentication`)
+- **Automatic Commits** - Commits on task completion with conventional format
+- **Autonomous Mode** - Runs all tasks/features without pausing
+- **Dependency Tracking** - Respects task dependencies before execution
+
+### Status and Filtering
+- **ASCII Status Tables** - Beautiful table display with `ralph -TaskStatus`
+- **Status Filtering** - Filter by COMPLETED, IN_PROGRESS, NOT_STARTED, BLOCKED
+- **Feature Filtering** - Filter tasks by Feature ID (e.g., `-FeatureFilter F001`)
+- **Priority Filtering** - Filter by P1, P2, P3, P4
+
+### Resume and Recovery
+- **Automatic Resume** - Detects interrupted runs, resumes from checkpoint
+- **Branch Restoration** - Switches to correct feature branch on resume
+- **Progress History** - Tracks task completion with timestamps
+- **Error Log** - Records errors with retry attempts
+
+### Safety and Control
+- **Circuit Breaker** - Detects stagnation (no-progress loops)
+- **Rate Limiting** - Configurable API calls per hour
+- **Max Errors Threshold** - Stops after N consecutive errors
+- **Execution Timeout** - Configurable timeout per AI execution
+
+### Monitoring
+- **Live Dashboard** - Real-time monitoring with `ralph -Monitor`
+- **Progress Bars** - Visual progress display in autonomous mode
+- **Completion Summaries** - Task and feature completion reports
 
 ## Requirements
 
