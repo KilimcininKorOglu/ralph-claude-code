@@ -262,11 +262,12 @@ function Test-ParsedOutput {
         Validate parsed output has required structure
     #>
     param(
-        [Parameter(Mandatory)]
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [AllowEmptyCollection()]
         [array]$Files
     )
     
-    if ($Files.Count -eq 0) {
+    if ($null -eq $Files -or $Files.Count -eq 0) {
         Write-Warning "No files parsed from output"
         return $false
     }
@@ -410,15 +411,18 @@ function Write-AIProviderList {
     Write-Host ""
 }
 
-Export-ModuleMember -Function @(
-    'Test-AIProvider',
-    'Get-AvailableProviders',
-    'Get-AutoProvider',
-    'Test-PrdSize',
-    'Invoke-AICommand',
-    'Invoke-AIWithTimeout',
-    'Split-AIOutput',
-    'Test-ParsedOutput',
-    'Invoke-AIWithRetry',
-    'Write-AIProviderList'
-)
+# Export functions when loaded as module
+if ($MyInvocation.ScriptName -match '\.psm1$') {
+    Export-ModuleMember -Function @(
+        'Test-AIProvider',
+        'Get-AvailableProviders',
+        'Get-AutoProvider',
+        'Test-PrdSize',
+        'Invoke-AICommand',
+        'Invoke-AIWithTimeout',
+        'Split-AIOutput',
+        'Test-ParsedOutput',
+        'Invoke-AIWithRetry',
+        'Write-AIProviderList'
+    )
+}
