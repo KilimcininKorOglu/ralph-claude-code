@@ -1,6 +1,15 @@
-# Ralph for Claude Code - Windows PowerShell Version
+# Ralph for Claude Code
 
 Native Windows PowerShell autonomous AI development loop system. Supports multiple AI CLIs (Claude, Droid, Aider) with task-driven development, automatic branching, and intelligent resume.
+
+## Documentation
+
+| Document                                      | Description                           |
+|-----------------------------------------------|---------------------------------------|
+| [Installation Guide](docs/installation.md)    | Step-by-step installation             |
+| [User Guide](docs/USER-GUIDE.md)              | Complete usage documentation          |
+| [Example Usage](docs/example-usage.md)        | Step-by-step walkthrough with PRD     |
+| [Sample PRD](docs/sample-prd.md)              | E-commerce platform example PRD       |
 
 ## Features
 
@@ -666,37 +675,7 @@ Remove-Item $env:LOCALAPPDATA\Ralph -Recurse -Force
 
 ## Troubleshooting
 
-### PowerShell Script Errors
-
-```
-File cannot be loaded because running scripts is disabled
-```
-
-Fix:
-
-```powershell
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-```
-
-### Claude Code Not Found
-
-```
-'claude' is not recognized
-```
-
-Fix:
-
-```powershell
-npm install -g @anthropic-ai/claude-code
-```
-
-### PATH Not Updated
-
-After installation, restart your terminal or run:
-
-```powershell
-$env:PATH = "$env:LOCALAPPDATA\Ralph\bin;$env:PATH"
-```
+See [Installation Guide](docs/installation.md#troubleshooting) for common issues and solutions.
 
 ## License
 
