@@ -425,6 +425,231 @@ function Set-RunStateCompleted {
     Update-TasksStatusFile -BasePath $BasePath
 }
 
+function Test-ShouldResume {
+    <#
+    .SYNOPSIS
+        Checks if there's an active run state to resume
+    .OUTPUTS
+        Boolean - true if resume is possible
+    #>
+    param(
+        [string]$BasePath = "."
+    )
+    
+    $state = Get-RunState -BasePath $BasePath
+    
+    if (-not $state) {
+        return $false
+    }
+    
+    # Check if status is IN_PROGRESS and there's a valid task
+    if ($state.Status -eq "IN_PROGRESS" -and ($state.CurrentTaskId -or $state.NextTaskId)) {
+        return $true
+    }
+    
+    return $false
+}
+
+function Get-ResumeInfo {
+    <#
+    .SYNOPSIS
+        Gets detailed resume information
+    .OUTPUTS
+        Hashtable with resume details or null
+    #>
+    param(
+        [string]$BasePath = "."
+    )
+    
+    $state = Get-RunState -BasePath $BasePath
+    
+    if (-not $state -or $state.Status -ne "IN_PROGRESS") {
+        return $null
+    }
+    
+    # Determine which task to resume from
+    $resumeTaskId = $state.NextTaskId
+    if (-not $resumeTaskId -and $state.CurrentTaskId) {
+        # Current task might still be in progress
+        $currentTask = Get-TaskById -TaskId $state.CurrentTaskId -BasePath $BasePath
+        if ($currentTask -and $currentTask.Status -ne "COMPLETED") {
+            $resumeTaskId = $state.CurrentTaskId
+        }
+    }
+    
+    if (-not $resumeTaskId) {
+        # Find next available task
+        $nextTask = Get-NextTask -BasePath $BasePath
+        if ($nextTask) {
+            $resumeTaskId = $nextTask.TaskId
+        }
+    }
+    
+    return @{
+        ResumeTaskId = $resumeTaskId
+        CurrentFeatureId = $state.CurrentFeatureId
+        CurrentBranch = $state.CurrentBranch
+        Status = $state.Status
+    }
+}
+
+function Add-ErrorLogEntry {
+    <#
+    .SYNOPSIS
+        Adds an error entry to run-state.md
+    #>
+    param(
+        [string]$TaskId,
+        [int]$Attempt,
+        [string]$ErrorMessage,
+        [string]$BasePath = "."
+    )
+    
+    $runStateFile = Join-Path $BasePath "tasks" "run-state.md"
+    
+    if (-not (Test-Path $runStateFile)) {
+        return
+    }
+    
+    $content = Get-Content $runStateFile -Raw -Encoding UTF8
+    $timestamp = Get-Date -Format "HH:mm"
+    
+    # Check if Error Log section exists
+    if ($content -notmatch "## Error Log") {
+        $errorSection = @"
+
+## Error Log
+
+| Task | Attempt | Error | Timestamp |
+|------|---------|-------|-----------|
+| $TaskId | $Attempt | $ErrorMessage | $timestamp |
+"@
+        $content = $content + $errorSection
+    }
+    else {
+        # Add new row to existing table
+        $newRow = "| $TaskId | $Attempt | $ErrorMessage | $timestamp |"
+        $content = $content -replace "(## Error Log\s*\n\n\|[^\n]+\n\|[^\n]+\n)", "`$1$newRow`n"
+    }
+    
+    $content | Set-Content $runStateFile -Encoding UTF8 -NoNewline
+}
+
+function Update-RunStateProgress {
+    <#
+    .SYNOPSIS
+        Updates or adds a task entry in the progress table
+    #>
+    param(
+        [string]$TaskId,
+        [string]$FeatureId,
+        [string]$Status,
+        [datetime]$StartTime = (Get-Date),
+        [datetime]$EndTime,
+        [string]$BasePath = "."
+    )
+    
+    $runStateFile = Join-Path $BasePath "tasks" "run-state.md"
+    
+    if (-not (Test-Path $runStateFile)) {
+        return
+    }
+    
+    $content = Get-Content $runStateFile -Raw -Encoding UTF8
+    $startStr = $StartTime.ToString("HH:mm")
+    $endStr = if ($EndTime) { $EndTime.ToString("HH:mm") } else { "-" }
+    $durationStr = if ($EndTime) { 
+        $duration = $EndTime - $StartTime
+        "$([Math]::Round($duration.TotalMinutes))m"
+    } else { "-" }
+    
+    # Check if Progress section exists
+    if ($content -notmatch "## Progress") {
+        $progressSection = @"
+
+## Progress
+
+| Task | Feature | Status | Started | Completed | Duration |
+|------|---------|--------|---------|-----------|----------|
+| $TaskId | $FeatureId | $Status | $startStr | $endStr | $durationStr |
+"@
+        # Insert before Summary section
+        if ($content -match "## Summary") {
+            $content = $content -replace "(## Summary)", "$progressSection`n`n`$1"
+        }
+        else {
+            $content = $content + $progressSection
+        }
+    }
+    else {
+        # Check if task already exists in table
+        if ($content -match "\| $TaskId \|") {
+            # Update existing row
+            $content = $content -replace "\| $TaskId \| [^|]+ \| [^|]+ \| [^|]+ \| [^|]+ \| [^|]+ \|", "| $TaskId | $FeatureId | $Status | $startStr | $endStr | $durationStr |"
+        }
+        else {
+            # Add new row
+            $newRow = "| $TaskId | $FeatureId | $Status | $startStr | $endStr | $durationStr |"
+            $content = $content -replace "(## Progress\s*\n\n\|[^\n]+\n\|[^\n]+\n)", "`$1$newRow`n"
+        }
+    }
+    
+    $content | Set-Content $runStateFile -Encoding UTF8 -NoNewline
+}
+
+function Get-ExecutionQueue {
+    <#
+    .SYNOPSIS
+        Gets priority-sorted remaining tasks
+    .OUTPUTS
+        Array of tasks with dependency info
+    #>
+    param(
+        [string]$BasePath = "."
+    )
+    
+    $allTasks = @(Get-AllTasks -BasePath $BasePath)
+    $remaining = [System.Collections.ArrayList]::new()
+    
+    foreach ($task in $allTasks) {
+        if ($task.Status -eq "NOT_STARTED" -or $task.Status -eq "IN_PROGRESS") {
+            # Check dependencies
+            $blockedBy = @()
+            if ($task.Dependencies -and $task.Dependencies.Count -gt 0) {
+                foreach ($depId in $task.Dependencies) {
+                    $depTask = Get-TaskById -TaskId $depId -BasePath $BasePath
+                    if ($depTask -and $depTask.Status -ne "COMPLETED") {
+                        $blockedBy += "$depId ($($depTask.Status))"
+                    }
+                }
+            }
+            
+            [void]$remaining.Add(@{
+                TaskId = $task.TaskId
+                Name = $task.Name
+                FeatureId = $task.FeatureId
+                Priority = $task.Priority
+                Status = $task.Status
+                BlockedBy = $blockedBy
+                IsBlocked = ($blockedBy.Count -gt 0)
+            })
+        }
+    }
+    
+    # Sort by priority then by task ID
+    $sorted = @($remaining | Sort-Object { 
+        switch ($_.Priority) {
+            "P1" { 1 }
+            "P2" { 2 }
+            "P3" { 3 }
+            "P4" { 4 }
+            default { 5 }
+        }
+    }, { $_.TaskId })
+    
+    return ,$sorted
+}
+
 function Update-SuccessCriteria {
     <#
     .SYNOPSIS

@@ -366,6 +366,33 @@ Status table shows:
 - Progress bar visualization
 - Next task recommendation
 
+### Automatic Resume
+
+Ralph automatically resumes from the last checkpoint when restarted:
+
+```powershell
+# First run - stops at T003
+ralph -TaskMode -AutoBranch -AutoCommit
+# ... interrupted or context limit reached
+
+# Next run - automatically resumes from T004
+ralph -TaskMode -AutoBranch -AutoCommit
+# Output: "Previous run detected - Resuming from T004..."
+```
+
+Resume features:
+- Detects `run-state.md` with IN_PROGRESS status
+- Automatically switches to correct feature branch
+- Continues from next uncompleted task
+- Preserves error log and progress history
+
+The `run-state.md` file tracks:
+- Current task and feature position
+- Branch information
+- Progress history with timestamps
+- Error log with retry attempts
+- Execution queue (priority-sorted remaining tasks)
+
 ### Task File Format
 
 ```markdown

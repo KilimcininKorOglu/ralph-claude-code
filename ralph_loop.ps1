@@ -1060,6 +1060,34 @@ function Start-TaskModeLoop {
         Write-Status -Level "INFO" -Message "Autonomous mode: ENABLED (no pauses)"
     }
     
+    # Check for resume if no StartFrom specified
+    if (-not $script:Config.StartFromTask -and (Test-ShouldResume -BasePath ".")) {
+        $resumeInfo = Get-ResumeInfo -BasePath "."
+        if ($resumeInfo -and $resumeInfo.ResumeTaskId) {
+            Write-Host ""
+            Write-Host ("=" * 50) -ForegroundColor Yellow
+            Write-Host "  Previous run detected - Resuming" -ForegroundColor Yellow
+            Write-Host ("=" * 50) -ForegroundColor Yellow
+            Write-Host "  Resume Task: $($resumeInfo.ResumeTaskId)" -ForegroundColor White
+            if ($resumeInfo.CurrentBranch) {
+                Write-Host "  Branch: $($resumeInfo.CurrentBranch)" -ForegroundColor White
+            }
+            Write-Host ("=" * 50) -ForegroundColor Yellow
+            Write-Host ""
+            
+            $script:Config.StartFromTask = $resumeInfo.ResumeTaskId
+            
+            # Switch to branch if needed
+            if ($resumeInfo.CurrentBranch -and $script:Config.AutoBranch) {
+                $currentBranch = git rev-parse --abbrev-ref HEAD 2>$null
+                if ($currentBranch -ne $resumeInfo.CurrentBranch) {
+                    Write-Status -Level "INFO" -Message "Switching to branch: $($resumeInfo.CurrentBranch)"
+                    git checkout $resumeInfo.CurrentBranch 2>$null
+                }
+            }
+        }
+    }
+    
     # Check if tasks directory exists
     if (-not (Test-TasksDirectoryExists -BasePath ".")) {
         Write-Status -Level "ERROR" -Message "Tasks directory not found: $($script:Config.TasksDir)"
