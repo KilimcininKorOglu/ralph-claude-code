@@ -176,6 +176,123 @@ function Get-FirstAvailableAI {
 | Auto-commit kapat | `aider --no-auto-commits` |
 | Dry run | `aider --dry-run --message "query"` |
 
+## Cikti Parse Stratejisi
+
+### Yaklasim
+
+AI'ya dogru formati ogretelim, parse etmeye gerek kalmasin.
+
+| Yaklasim | Sorun |
+|----------|-------|
+| AI serbest yazsin, biz parse edelim | Regex karmasik, hataya acik, her AI farkli yazar |
+| AI bizim formatimizda yazsin | Temiz cikti, dogrudan dosyaya yazilir |
+
+### Dosya Ayirici Format
+
+AI ciktisinda her dosya `### FILE: path` marker'i ile baslar:
+
+```markdown
+### FILE: tasks/001-user-registration.md
+# Feature 1: User Registration
+
+**Feature ID:** F001
+**Feature Name:** User Registration
+**Priority:** P1 - Critical
+**Status:** NOT_STARTED
+...
+
+### FILE: tasks/002-password-reset.md
+# Feature 2: Password Reset
+...
+
+### FILE: tasks/tasks-status.md
+# Task Status Tracker
+...
+```
+
+### Parse Fonksiyonu
+
+```powershell
+function Split-AIOutput {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Output,
+        
+        [string]$OutputDir = "tasks"
+    )
+    
+    # tasks/ klasorunu olustur
+    if (-not (Test-Path $OutputDir)) {
+        New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
+    }
+    
+    # "### FILE: path" ile bolelim
+    $pattern = "(?m)^### FILE:\s*(.+?)$"
+    $matches = [regex]::Matches($Output, $pattern)
+    
+    $files = @()
+    
+    for ($i = 0; $i -lt $matches.Count; $i++) {
+        $match = $matches[$i]
+        $filePath = $match.Groups[1].Value.Trim()
+        
+        # Icerik: bu match'ten sonraki match'e kadar
+        $startIndex = $match.Index + $match.Length
+        $endIndex = if ($i -lt $matches.Count - 1) {
+            $matches[$i + 1].Index
+        } else {
+            $Output.Length
+        }
+        
+        $content = $Output.Substring($startIndex, $endIndex - $startIndex).Trim()
+        
+        # Dosyayi yaz
+        $fullPath = Join-Path $OutputDir (Split-Path $filePath -Leaf)
+        $content | Set-Content $fullPath -Encoding UTF8
+        
+        $files += @{
+            Path = $fullPath
+            Name = Split-Path $filePath -Leaf
+        }
+    }
+    
+    return $files
+}
+```
+
+### Validasyon
+
+Parse sonrasi kontrol:
+
+```powershell
+function Test-ParsedOutput {
+    param([array]$Files)
+    
+    $valid = $true
+    
+    foreach ($file in $Files) {
+        $content = Get-Content $file.Path -Raw
+        
+        # Feature dosyasi mi?
+        if ($file.Name -match "^\d{3}-") {
+            # Feature ID var mi?
+            if ($content -notmatch "\*\*Feature ID:\*\*\s*F\d+") {
+                Write-Warning "Missing Feature ID in $($file.Name)"
+                $valid = $false
+            }
+            
+            # En az bir task var mi?
+            if ($content -notmatch "###\s+T\d+:") {
+                Write-Warning "No tasks found in $($file.Name)"
+                $valid = $false
+            }
+        }
+    }
+    
+    return $valid
+}
+```
+
 ## lib/prompts/prd-parser.md
 
 AI'ya gonderilecek prompt:
