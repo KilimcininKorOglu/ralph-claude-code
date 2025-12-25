@@ -410,12 +410,12 @@ function Start-Monitor {
     #>
     
     # Check if in Ralph project
-    $isRalphProject = (Test-Path "PROMPT.md") -or (Test-Path $script:StatusFile) -or (Test-Path "@fix_plan.md")
+    $isRalphProject = (Test-Path "PROMPT.md") -or (Test-Path $script:StatusFile) -or (Test-Path "tasks")
     
     if (-not $isRalphProject) {
         Write-Host ""
         Write-Host "Warning: This doesn't appear to be a Ralph project directory." -ForegroundColor Yellow
-        Write-Host "Looking for: PROMPT.md, status.json, or @fix_plan.md" -ForegroundColor Gray
+        Write-Host "Looking for: PROMPT.md, status.json, or tasks/" -ForegroundColor Gray
         Write-Host "Current directory: $(Get-Location)" -ForegroundColor Gray
         Write-Host ""
         Write-Host "The monitor will still run, but may not show useful information." -ForegroundColor Yellow

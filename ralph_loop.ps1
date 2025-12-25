@@ -456,25 +456,6 @@ function Get-ExitReason {
         return "project_complete"
     }
     
-    # 4. Check @fix_plan.md for completion
-    if (Test-Path "@fix_plan.md") {
-        $content = Get-Content "@fix_plan.md" -Raw
-        
-        # Count total checkbox items and completed items
-        $totalMatches = [regex]::Matches($content, "(?m)^- \[")
-        $completedMatches = [regex]::Matches($content, "(?mi)^- \[x\]")
-        
-        $totalItems = $totalMatches.Count
-        $completedItems = $completedMatches.Count
-        
-        Write-Status -Level "INFO" -Message "@fix_plan.md check - total:$totalItems, completed:$completedItems"
-        
-        if ($totalItems -gt 0 -and $completedItems -eq $totalItems) {
-            Write-Status -Level "WARN" -Message "Exit condition: All fix_plan.md items completed ($completedItems/$totalItems)"
-            return "plan_complete"
-        }
-    }
-    
     return ""
 }
 
@@ -696,7 +677,7 @@ function Start-RalphLoop {
         Write-Status -Level "ERROR" -Message "Prompt file '$($script:Config.PromptFile)' not found!"
         Write-Host ""
         
-        if ((Test-Path "@fix_plan.md") -or (Test-Path "specs") -or (Test-Path "@AGENT.md")) {
+        if ((Test-Path "tasks") -or (Test-Path "specs")) {
             Write-Host "This appears to be a Ralph project but is missing PROMPT.md." -ForegroundColor Yellow
             Write-Host "You may need to create or restore the PROMPT.md file."
         }

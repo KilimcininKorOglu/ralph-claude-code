@@ -51,8 +51,7 @@ function Show-Help {
     Write-Host ""
     Write-Host "This creates a new directory with:" -ForegroundColor Gray
     Write-Host "    PROMPT.md        Main development instructions for Ralph"
-    Write-Host "    @fix_plan.md     Prioritized task checklist"
-    Write-Host "    @AGENT.md        Build and run instructions"
+    Write-Host "    tasks/           Task files (created by ralph-prd)"
     Write-Host "    specs/           Project specifications"
     Write-Host "    src/             Source code"
     Write-Host "    logs/            Execution logs"
@@ -145,42 +144,21 @@ function New-RalphProject {
         }
         Write-Host "[OK] Created directory structure" -ForegroundColor Green
         
-        # Copy templates
-        $templateMappings = @{
-            "PROMPT.md" = "PROMPT.md"
-            "fix_plan.md" = "@fix_plan.md"
-            "AGENT.md" = "@AGENT.md"
+        # Copy PROMPT.md template
+        $promptSource = Join-Path $templatesPath "PROMPT.md"
+        if (Test-Path $promptSource) {
+            Copy-Item -Path $promptSource -Destination "PROMPT.md" -Force
+            Write-Host "[OK] Created: PROMPT.md" -ForegroundColor Green
+        }
+        else {
+            $content = Get-DefaultPromptTemplate -ProjectName $Name
+            $content | Set-Content "PROMPT.md" -Encoding UTF8
+            Write-Host "[OK] Created: PROMPT.md (default template)" -ForegroundColor Green
         }
         
-        foreach ($mapping in $templateMappings.GetEnumerator()) {
-            $source = Join-Path $templatesPath $mapping.Key
-            $dest = $mapping.Value
-            
-            if (Test-Path $source) {
-                Copy-Item -Path $source -Destination $dest -Force
-                Write-Host "[OK] Created: $dest" -ForegroundColor Green
-            }
-            else {
-                # Create minimal template if not found
-                switch ($mapping.Value) {
-                    "PROMPT.md" {
-                        $content = Get-DefaultPromptTemplate -ProjectName $Name
-                        $content | Set-Content $dest -Encoding UTF8
-                        Write-Host "[OK] Created: $dest (default template)" -ForegroundColor Green
-                    }
-                    "@fix_plan.md" {
-                        $content = Get-DefaultFixPlanTemplate
-                        $content | Set-Content $dest -Encoding UTF8
-                        Write-Host "[OK] Created: $dest (default template)" -ForegroundColor Green
-                    }
-                    "@AGENT.md" {
-                        $content = Get-DefaultAgentTemplate
-                        $content | Set-Content $dest -Encoding UTF8
-                        Write-Host "[OK] Created: $dest (default template)" -ForegroundColor Green
-                    }
-                }
-            }
-        }
+        # Create tasks directory
+        New-Item -ItemType Directory -Path "tasks" -Force | Out-Null
+        Write-Host "[OK] Created: tasks/" -ForegroundColor Green
         
         # Copy specs templates if they exist
         $specsSource = Join-Path $templatesPath "specs"
@@ -226,10 +204,9 @@ function New-RalphProject {
         Write-Host ""
         Write-Host "Next steps:" -ForegroundColor Cyan
         Write-Host "  1. cd $Name"
-        Write-Host "  2. Edit PROMPT.md with your project requirements"
-        Write-Host "  3. Update specs\ with your project specifications"
-        Write-Host "  4. Configure @fix_plan.md with initial priorities"
-        Write-Host "  5. Run: ralph -Monitor"
+        Write-Host "  2. Create a PRD document (e.g., docs/PRD.md)"
+        Write-Host "  3. Run: ralph-prd docs/PRD.md"
+        Write-Host "  4. Run: ralph -TaskMode -AutoBranch -AutoCommit"
         Write-Host ""
     }
     finally {
@@ -247,17 +224,15 @@ function Get-DefaultPromptTemplate {
 You are Ralph, an autonomous AI development agent working on the $ProjectName project.
 
 ## Current Objectives
-1. Study specs/* to learn about the project specifications
-2. Review @fix_plan.md for current priorities
-3. Implement the highest priority item using best practices
-4. Run tests after each implementation
-5. Update documentation and @fix_plan.md
+1. Complete the current task from tasks/*.md
+2. Follow the success criteria for each task
+3. Run tests after implementation
+4. Commit working changes with descriptive messages
 
 ## Key Principles
-- ONE task per loop - focus on the most important thing
+- ONE task per loop - focus on the current task only
 - Search the codebase before assuming something isn't implemented
 - Write comprehensive tests with clear documentation
-- Update @fix_plan.md with your learnings
 - Commit working changes with descriptive messages
 
 ## Testing Guidelines
@@ -273,73 +248,18 @@ At the end of your response, include this status block:
 ``````
 ---RALPH_STATUS---
 STATUS: IN_PROGRESS | COMPLETE | BLOCKED
-TASKS_COMPLETED_THIS_LOOP: <number>
-FILES_MODIFIED: <number>
-TESTS_STATUS: PASSING | FAILING | NOT_RUN
-WORK_TYPE: IMPLEMENTATION | TESTING | DOCUMENTATION | REFACTORING
 EXIT_SIGNAL: false | true
 RECOMMENDATION: <one line summary of what to do next>
 ---END_RALPH_STATUS---
 ``````
 
 ## File Structure
-- specs/: Project specifications and requirements
-- src/: Source code implementation  
-- examples/: Example usage and test cases
-- @fix_plan.md: Prioritized TODO list
-- @AGENT.md: Project build and run instructions
+- tasks/: Task files with feature definitions
+- src/: Source code implementation
+- docs/: Project documentation
 
 ## Current Task
-Follow @fix_plan.md and choose the most important item to implement next.
-"@
-}
-
-function Get-DefaultFixPlanTemplate {
-    return @"
-# Fix Plan - Prioritized Tasks
-
-## High Priority
-- [ ] Review project specifications in specs/
-- [ ] Set up basic project structure
-- [ ] Implement core functionality
-
-## Medium Priority
-- [ ] Add error handling
-- [ ] Write unit tests
-- [ ] Add documentation
-
-## Low Priority
-- [ ] Code cleanup and refactoring
-- [ ] Performance optimization
-- [ ] Additional features
-
-## Completed
-<!-- Move completed items here -->
-"@
-}
-
-function Get-DefaultAgentTemplate {
-    return @"
-# Agent Instructions
-
-## Build Commands
-``````bash
-# Add your build commands here
-``````
-
-## Run Commands
-``````bash
-# Add your run commands here
-``````
-
-## Test Commands
-``````bash
-# Add your test commands here
-``````
-
-## Notes
-- Update this file as the project evolves
-- Ralph will reference these commands during development
+The current task will be injected below by Ralph Task Mode.
 "@
 }
 
@@ -353,26 +273,25 @@ A Ralph-managed project for autonomous AI development.
 
 ## Getting Started
 
-1. Edit ``PROMPT.md`` with your project requirements
-2. Update ``specs/`` with detailed specifications
-3. Configure ``@fix_plan.md`` with initial priorities
-4. Run: ``ralph -Monitor``
+1. Create a PRD document in ``docs/PRD.md``
+2. Run: ``ralph-prd docs/PRD.md``
+3. Run: ``ralph -TaskMode -AutoBranch -AutoCommit``
 
 ## Project Structure
 
 - ``PROMPT.md`` - Main development instructions for Ralph
-- ``@fix_plan.md`` - Prioritized task checklist
-- ``@AGENT.md`` - Build and run instructions
-- ``specs/`` - Project specifications
+- ``tasks/`` - Task files (created by ralph-prd)
 - ``src/`` - Source code
+- ``docs/`` - Project documentation
 - ``logs/`` - Ralph execution logs
 
 ## Commands
 
 ``````powershell
-ralph -Monitor      # Start with monitoring
-ralph -Status       # Check current status
-ralph-monitor       # Separate monitor dashboard
+ralph-prd docs/PRD.md                          # Parse PRD to tasks
+ralph -TaskMode -AutoBranch -AutoCommit        # Run Task Mode
+ralph -TaskStatus                              # Show task progress
+ralph -TaskMode -Autonomous                    # Run without pausing
 ``````
 
 ## Created with Ralph for Claude Code
