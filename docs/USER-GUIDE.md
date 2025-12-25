@@ -100,7 +100,7 @@ cd hermes-claude-code
 .\install.ps1
 
 # Verify installation
-Hermes -Help
+hermes -Help
 ```
 
 ### Installation Paths
@@ -132,7 +132,7 @@ cd my-project
 notepad PROMPT.md
 
 # Start Hermes
-Hermes -Monitor
+hermes -Monitor
 ```
 
 ### Working with Task Mode
@@ -142,10 +142,10 @@ Hermes -Monitor
 hermes-prd docs/PRD.md
 
 # Start task mode
-Hermes -TaskMode -AutoBranch -AutoCommit
+hermes -TaskMode -AutoBranch -AutoCommit
 
 # Run in autonomous mode
-Hermes -TaskMode -Autonomous
+hermes -TaskMode -Autonomous
 ```
 
 ### Project Structure
@@ -173,10 +173,10 @@ my-project/
 
 | Command                | Description                    |
 |------------------------|--------------------------------|
-| `Hermes -Monitor`       | Start with monitoring window   |
-| `Hermes -Status`        | Show current status            |
-| `Hermes -Help`          | Show help message              |
-| `Hermes -ResetCircuit`  | Reset circuit breaker          |
+| `hermes -Monitor`       | Start with monitoring window   |
+| `hermes -Status`        | Show current status            |
+| `hermes -Help`          | Show help message              |
+| `hermes -ResetCircuit`  | Reset circuit breaker          |
 | `hermes-setup <name>`   | Create new project             |
 | `hermes-prd <file>`     | Convert PRD to tasks           |
 | `hermes-add "feature"`  | Add single feature             |
@@ -230,7 +230,7 @@ Task Mode is a development mode that works with structured task files. Each feat
 ### Workflow
 
 ```
-PRD.md -> hermes-prd -> tasks/*.md -> Hermes -TaskMode -> Automatic Implementation
+PRD.md -> hermes-prd -> tasks/*.md -> hermes -TaskMode -> Automatic Implementation
 ```
 
 ### Task File Format
@@ -316,11 +316,11 @@ Hermes automatically resumes from where it left off using `run-state.md`:
 
 ```powershell
 # First run - interrupted at T003
-Hermes -TaskMode -AutoBranch -AutoCommit
+hermes -TaskMode -AutoBranch -AutoCommit
 # ... interruption or context limit
 
 # Next run - resumes from T004
-Hermes -TaskMode -AutoBranch -AutoCommit
+hermes -TaskMode -AutoBranch -AutoCommit
 # Output: "Previous run detected - Resuming from T004..."
 ```
 
@@ -328,15 +328,15 @@ Hermes -TaskMode -AutoBranch -AutoCommit
 
 ```powershell
 # Full status table
-Hermes -TaskStatus
+hermes -TaskStatus
 
 # Filtered status
-Hermes -TaskStatus -StatusFilter BLOCKED
-Hermes -TaskStatus -FeatureFilter F001
-Hermes -TaskStatus -PriorityFilter P1
+hermes -TaskStatus -StatusFilter BLOCKED
+hermes -TaskStatus -FeatureFilter F001
+hermes -TaskStatus -PriorityFilter P1
 
 # Combined filter
-Hermes -TaskStatus -StatusFilter NOT_STARTED -PriorityFilter P1
+hermes -TaskStatus -StatusFilter NOT_STARTED -PriorityFilter P1
 ```
 
 ---
@@ -405,7 +405,7 @@ Summary:
   Tasks: 8
   Estimated: 12 days
 
-Next: Run 'Hermes -TaskMode -AutoBranch -AutoCommit' to start
+Next: Run 'hermes -TaskMode -AutoBranch -AutoCommit' to start
 ```
 
 ---
@@ -468,7 +468,7 @@ hermes-add "email verification" -DryRun
 
 ==================================================
 
-Next: Run 'Hermes -TaskMode -AutoBranch -AutoCommit' to implement
+Next: Run 'hermes -TaskMode -AutoBranch -AutoCommit' to implement
 ```
 
 ---
@@ -495,12 +495,12 @@ Hermes automatically detects available AI CLIs. Priority order:
 
 ```powershell
 # Auto detection (default)
-Hermes -TaskMode
+hermes -TaskMode
 hermes-prd docs/PRD.md
 hermes-add "feature"
 
 # Specific provider
-Hermes -TaskMode -AI droid
+hermes -TaskMode -AI droid
 hermes-prd docs/PRD.md -AI claude
 hermes-add "feature" -AI aider
 ```
@@ -723,7 +723,7 @@ CIRCUIT BREAKER OPENED - Execution halted
 3. Fix the issue and reset:
 
    ```powershell
-   Hermes -ResetCircuit
+   hermes -ResetCircuit
    ```
 
 ### Task Not Found
@@ -736,7 +736,7 @@ Task not found: T005
 
 - Ensure task ID is typed correctly
 - Check that `tasks/` directory exists
-- List existing tasks with `Hermes -TaskStatus`
+- List existing tasks with `hermes -TaskStatus`
 
 ### Resume Not Working
 
@@ -747,7 +747,7 @@ Resume mechanism depends on `run-state.md`:
 Get-Content tasks/run-state.md
 
 # Manually start from specific task
-Hermes -TaskMode -StartFrom T005
+hermes -TaskMode -StartFrom T005
 ```
 
 ### Syntax Check

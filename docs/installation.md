@@ -29,7 +29,7 @@ cd hermes-claude-code
 .\install.ps1
 
 # Verify
-Hermes -Help
+hermes -Help
 ```
 
 ---
@@ -120,7 +120,7 @@ $env:PATH = "$env:LOCALAPPDATA\Hermes\bin;$env:PATH"
 ### 6. Verify Installation
 
 ```powershell
-Hermes -Help
+hermes -Help
 hermes-prd -List
 ```
 
@@ -165,7 +165,7 @@ This removes:
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
 
-### "Hermes is not recognized"
+### "hermes is not recognized"
 
 Restart terminal or manually add to PATH:
 
@@ -200,7 +200,7 @@ Then use `pwsh` instead of `powershell`:
 
 ```powershell
 pwsh
-Hermes -Help
+hermes -Help
 ```
 
 ---
@@ -224,7 +224,7 @@ hermes-prd docs/PRD.md
 ### Start Task Mode
 
 ```powershell
-Hermes -TaskMode -AutoBranch -AutoCommit
+hermes -TaskMode -AutoBranch -AutoCommit
 ```
 
 ---

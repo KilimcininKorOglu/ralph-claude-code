@@ -408,7 +408,7 @@ function Test-ShouldHalt {
         Write-Host "     Get-ChildItem logs\claude_output_*.log | Sort-Object LastWriteTime -Descending | Select-Object -First 1" -ForegroundColor Cyan
         Write-Host "  3. Update @fix_plan.md if needed" -ForegroundColor White
         Write-Host "  4. Reset circuit breaker:" -ForegroundColor White
-        Write-Host "     Hermes -ResetCircuit" -ForegroundColor Cyan
+        Write-Host "     hermes -ResetCircuit" -ForegroundColor Cyan
         Write-Host ""
         
         return $true

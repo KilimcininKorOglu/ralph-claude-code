@@ -35,7 +35,7 @@ Autonomous AI development loop system for Windows PowerShell. Supports multiple 
 
 ### Status and Filtering
 
-- **ASCII Status Tables** - Beautiful table display with `Hermes -TaskStatus`
+- **ASCII Status Tables** - Beautiful table display with `hermes -TaskStatus`
 - **Live Monitor** - Real-time dashboard with `hermes-monitor`
 - **Status Filtering** - Filter by COMPLETED, IN_PROGRESS, NOT_STARTED, BLOCKED
 - **Feature/Priority Filtering** - Filter by Feature ID or Priority level
@@ -74,7 +74,7 @@ cd my-project
 hermes-prd docs/PRD.md
 
 # Start Task Mode
-Hermes -TaskMode -AutoBranch -AutoCommit
+hermes -TaskMode -AutoBranch -AutoCommit
 ```
 
 ## Commands
@@ -84,9 +84,9 @@ Hermes -TaskMode -AutoBranch -AutoCommit
 | `hermes-setup <name>`                      | Create new project         |
 | `hermes-prd <file>`                        | Parse PRD to task files    |
 | `hermes-add "feature"`                     | Add single feature         |
-| `Hermes -TaskMode -AutoBranch -AutoCommit` | Run with full automation   |
-| `Hermes -TaskMode -Autonomous`             | Run without pausing        |
-| `Hermes -TaskStatus`                       | Show task progress table   |
+| `hermes -TaskMode -AutoBranch -AutoCommit` | Run with full automation   |
+| `hermes -TaskMode -Autonomous`             | Run without pausing        |
+| `hermes -TaskStatus`                       | Show task progress table   |
 | `hermes-monitor`                           | Live monitoring dashboard  |
 
 ## Supported AI Providers
@@ -99,7 +99,7 @@ Hermes -TaskMode -AutoBranch -AutoCommit
 
 ```powershell
 # Specify provider
-Hermes -TaskMode -AI droid -AutoBranch -AutoCommit
+hermes -TaskMode -AI droid -AutoBranch -AutoCommit
 hermes-prd docs/PRD.md -AI claude
 hermes-add "feature" -AI aider
 ```
@@ -122,7 +122,7 @@ my-project/
 ## Task Mode Workflow
 
 ```
-PRD.md -> hermes-prd -> tasks/*.md -> Hermes -TaskMode -> Implementation
+PRD.md -> hermes-prd -> tasks/*.md -> hermes -TaskMode -> Implementation
 ```
 
 ### Task File Format
@@ -166,7 +166,7 @@ Prevents runaway execution:
 | HALF_OPEN | Monitoring (2 no-progress loops) |
 | OPEN      | Halted (3+ no-progress loops)    |
 
-Reset with: `Hermes -ResetCircuit`
+Reset with: `hermes -ResetCircuit`
 
 ## Testing
 

@@ -554,5 +554,5 @@ if ($isIncremental) {
 }
 
 Write-Host ""
-Write-Host "Next: Run 'Hermes -TaskMode -AutoBranch -AutoCommit' to start" -ForegroundColor Cyan
+Write-Host "Next: Run 'hermes -TaskMode -AutoBranch -AutoCommit' to start" -ForegroundColor Cyan
 Write-Host ""

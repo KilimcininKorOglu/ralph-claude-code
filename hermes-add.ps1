@@ -197,5 +197,5 @@ Write-Host "  Effort:     $($feature.TotalEffort) days (total)" -ForegroundColor
 Write-Host ""
 Write-Host ("=" * 50) -ForegroundColor Green
 Write-Host ""
-Write-Host "Next: Run 'Hermes -TaskMode -AutoBranch -AutoCommit' to implement" -ForegroundColor Cyan
+Write-Host "Next: Run 'hermes -TaskMode -AutoBranch -AutoCommit' to implement" -ForegroundColor Cyan
 Write-Host ""

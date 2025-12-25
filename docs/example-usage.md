@@ -103,7 +103,7 @@ tasks/
 ## Step 4: Check Task Status
 
 ```powershell
-Hermes -TaskStatus
+hermes -TaskStatus
 ```
 
 **Expected Output:**
@@ -142,13 +142,13 @@ Next Task: T001 - Database Schema
 
 ```powershell
 # Only P1 priority tasks
-Hermes -TaskStatus -PriorityFilter P1
+hermes -TaskStatus -PriorityFilter P1
 
 # Tasks for specific feature
-Hermes -TaskStatus -FeatureFilter F001
+hermes -TaskStatus -FeatureFilter F001
 
 # Completed tasks
-Hermes -TaskStatus -StatusFilter COMPLETED
+hermes -TaskStatus -StatusFilter COMPLETED
 ```
 
 ---
@@ -158,7 +158,7 @@ Hermes -TaskStatus -StatusFilter COMPLETED
 ### Basic Usage
 
 ```powershell
-Hermes -TaskMode
+hermes -TaskMode
 ```
 
 This command:
@@ -172,7 +172,7 @@ This command:
 ### Full Automation
 
 ```powershell
-Hermes -TaskMode -AutoBranch -AutoCommit
+hermes -TaskMode -AutoBranch -AutoCommit
 ```
 
 This command additionally:
@@ -184,7 +184,7 @@ This command additionally:
 ### Autonomous Mode
 
 ```powershell
-Hermes -TaskMode -AutoBranch -AutoCommit -Autonomous
+hermes -TaskMode -AutoBranch -AutoCommit -Autonomous
 ```
 
 This command:
@@ -201,7 +201,7 @@ This command:
 
 ```powershell
 # Terminal 1: Run Hermes
-Hermes -TaskMode -AutoBranch -AutoCommit -Monitor
+hermes -TaskMode -AutoBranch -AutoCommit -Monitor
 
 # Terminal 2: Monitoring panel opens automatically
 ```
@@ -234,7 +234,7 @@ If you want to start from a specific task:
 
 ```powershell
 # Start from T005
-Hermes -TaskMode -StartFrom T005 -AutoBranch -AutoCommit
+hermes -TaskMode -StartFrom T005 -AutoBranch -AutoCommit
 ```
 
 ---
@@ -245,11 +245,11 @@ Hermes automatically resumes from where it left off:
 
 ```powershell
 # First run - interrupted at T003
-Hermes -TaskMode -AutoBranch -AutoCommit
+hermes -TaskMode -AutoBranch -AutoCommit
 # Ctrl+C or context limit
 
 # Second run - automatically continues from T004
-Hermes -TaskMode -AutoBranch -AutoCommit
+hermes -TaskMode -AutoBranch -AutoCommit
 ```
 
 **Output:**
@@ -298,7 +298,7 @@ hermes-add @docs/new-feature-spec.md
 hermes-prd docs/PRD.md -AI droid
 
 # Task Mode with Aider
-Hermes -TaskMode -AI aider -AutoBranch -AutoCommit
+hermes -TaskMode -AI aider -AutoBranch -AutoCommit
 
 # List available providers
 hermes-prd -List
@@ -314,10 +314,10 @@ hermes-prd -List
 3. # Copy PRD file to docs/PRD.md
 4. hermes-prd docs/PRD.md -DryRun          # Preview
 5. hermes-prd docs/PRD.md                   # Create tasks
-6. Hermes -TaskStatus                       # View status
-7. Hermes -TaskMode -AutoBranch -AutoCommit -Autonomous  # Start
+6. hermes -TaskStatus                       # View status
+7. hermes -TaskMode -AutoBranch -AutoCommit -Autonomous  # Start
 8. # ... Hermes is working ...
-9. Hermes -TaskStatus                       # Check progress
+9. hermes -TaskStatus                       # Check progress
 ```
 
 ---
@@ -361,23 +361,23 @@ hermes-prd docs/PRD.md -AI droid
 
 ```powershell
 # View blocked tasks
-Hermes -TaskStatus -StatusFilter BLOCKED
+hermes -TaskStatus -StatusFilter BLOCKED
 
 # Manually skip to next task
-Hermes -TaskMode -StartFrom T006
+hermes -TaskMode -StartFrom T006
 ```
 
 ### Circuit Breaker Opened
 
 ```powershell
 # Check status
-Hermes -CircuitStatus
+hermes -CircuitStatus
 
 # Reset
-Hermes -ResetCircuit
+hermes -ResetCircuit
 
 # Restart
-Hermes -TaskMode -AutoBranch -AutoCommit
+hermes -TaskMode -AutoBranch -AutoCommit
 ```
 
 ---

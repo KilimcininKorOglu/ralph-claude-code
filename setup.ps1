@@ -47,7 +47,7 @@ function Show-Help {
     Write-Host "Example:" -ForegroundColor Yellow
     Write-Host "    hermes-setup my-awesome-project"
     Write-Host "    cd my-awesome-project"
-    Write-Host "    Hermes -Monitor"
+    Write-Host "    hermes -Monitor"
     Write-Host ""
     Write-Host "This creates a new directory with:" -ForegroundColor Gray
     Write-Host "    PROMPT.md        Main development instructions for Hermes"
@@ -206,7 +206,7 @@ function New-HermesProject {
         Write-Host "  1. cd $Name"
         Write-Host "  2. Create a PRD document (e.g., docs/PRD.md)"
         Write-Host "  3. Run: hermes-prd docs/PRD.md"
-        Write-Host "  4. Run: Hermes -TaskMode -AutoBranch -AutoCommit"
+        Write-Host "  4. Run: hermes -TaskMode -AutoBranch -AutoCommit"
         Write-Host ""
     }
     finally {
@@ -275,7 +275,7 @@ A Hermes-managed project for autonomous AI development.
 
 1. Create a PRD document in ``docs/PRD.md``
 2. Run: ``hermes-prd docs/PRD.md``
-3. Run: ``Hermes -TaskMode -AutoBranch -AutoCommit``
+3. Run: ``hermes -TaskMode -AutoBranch -AutoCommit``
 
 ## Project Structure
 
@@ -289,9 +289,9 @@ A Hermes-managed project for autonomous AI development.
 
 ``````powershell
 hermes-prd docs/PRD.md                          # Parse PRD to tasks
-Hermes -TaskMode -AutoBranch -AutoCommit        # Run Task Mode
-Hermes -TaskStatus                              # Show task progress
-Hermes -TaskMode -Autonomous                    # Run without pausing
+hermes -TaskMode -AutoBranch -AutoCommit        # Run Task Mode
+hermes -TaskStatus                              # Show task progress
+hermes -TaskMode -Autonomous                    # Run without pausing
 ``````
 
 ## Created with Hermes for Claude Code

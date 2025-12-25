@@ -205,22 +205,22 @@ function Show-Help {
     Write-Host "Example workflow:" -ForegroundColor Yellow
     Write-Host "    hermes-setup my-project     # Create project"
     Write-Host "    cd my-project              # Enter project directory"
-    Write-Host "    Hermes -Monitor             # Start Hermes with monitoring"
+    Write-Host "    hermes -Monitor             # Start Hermes with monitoring"
     Write-Host ""
     Write-Host "Examples:" -ForegroundColor Yellow
-    Write-Host "    Hermes -Calls 50 -Prompt my_prompt.md"
-    Write-Host "    Hermes -Monitor -Timeout 30"
-    Write-Host "    Hermes -VerboseProgress"
+    Write-Host "    hermes -Calls 50 -Prompt my_prompt.md"
+    Write-Host "    hermes -Monitor -Timeout 30"
+    Write-Host "    hermes -VerboseProgress"
     Write-Host ""
     Write-Host "Task Mode Examples:" -ForegroundColor Yellow
-    Write-Host "    Hermes -TaskMode -AutoBranch -AutoCommit"
-    Write-Host "    Hermes -TaskMode -AutoBranch -AutoCommit -Autonomous"
-    Write-Host "    Hermes -TaskMode -AI droid -AutoBranch -AutoCommit"
-    Write-Host "    Hermes -TaskMode -StartFrom T005"
-    Write-Host "    Hermes -TaskStatus"
-    Write-Host "    Hermes -TaskStatus -StatusFilter BLOCKED"
-    Write-Host "    Hermes -TaskStatus -FeatureFilter F001"
-    Write-Host "    Hermes -TaskStatus -PriorityFilter P1"
+    Write-Host "    hermes -TaskMode -AutoBranch -AutoCommit"
+    Write-Host "    hermes -TaskMode -AutoBranch -AutoCommit -Autonomous"
+    Write-Host "    hermes -TaskMode -AI droid -AutoBranch -AutoCommit"
+    Write-Host "    hermes -TaskMode -StartFrom T005"
+    Write-Host "    hermes -TaskStatus"
+    Write-Host "    hermes -TaskStatus -StatusFilter BLOCKED"
+    Write-Host "    hermes -TaskStatus -FeatureFilter F001"
+    Write-Host "    hermes -TaskStatus -PriorityFilter P1"
     Write-Host ""
 }
 
@@ -754,7 +754,7 @@ function Start-HermesLoop {
                 Update-LoopStatus -LoopCount $script:LoopCount -CallsMade (Get-CallCount) `
                     -LastAction "circuit_breaker_open" -Status "halted" -ExitReason "stagnation_detected"
                 Write-Status -Level "ERROR" -Message "Circuit breaker has opened - halting loop"
-                Write-Status -Level "INFO" -Message "Run 'Hermes -ResetCircuit' to reset the circuit breaker after addressing issues"
+                Write-Status -Level "INFO" -Message "Run 'hermes -ResetCircuit' to reset the circuit breaker after addressing issues"
                 break
             }
             2 {

@@ -438,7 +438,7 @@ __pycache__/
         Write-Host "Next steps:" -ForegroundColor Cyan
         Write-Host "  1. cd $ProjectName"
         Write-Host "  2. Review and adjust the generated files"
-        Write-Host "  3. Run: Hermes -Monitor"
+        Write-Host "  3. Run: hermes -Monitor"
         Write-Host ""
     }
     finally {
