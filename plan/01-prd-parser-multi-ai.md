@@ -706,6 +706,75 @@ function Invoke-AIWithRetry {
 Created 3 files in 2 attempts.
 ```
 
+## Buyuk PRD Handling
+
+### Strateji: Warn Only
+
+Buyuk PRD'ler icin kullaniciyi uyar, devam et. Chunking yapmiyoruz cunku:
+- Feature bagimliliklari kopabilir
+- ID sirasi bozulabilir
+- Karmasiklik artar
+
+### Esik Degerleri
+
+```powershell
+$script:SizeThresholds = @{
+    WarningSize = 100000    # 100K karakter - uyari ver
+    LargeSize = 200000      # 200K karakter - ciddi uyari
+    MaxSize = 500000        # 500K karakter - cok buyuk uyari
+}
+```
+
+### Kontrol Fonksiyonu
+
+```powershell
+function Test-PrdSize {
+    param(
+        [Parameter(Mandatory)]
+        [string]$PrdFile
+    )
+    
+    $content = Get-Content $PrdFile -Raw
+    $size = $content.Length
+    $lineCount = ($content -split "`n").Count
+    
+    Write-Host "[INFO] PRD size: $size characters, $lineCount lines" -ForegroundColor Cyan
+    
+    if ($size -gt $script:SizeThresholds.MaxSize) {
+        Write-Warning "PRD is very large ($size chars). This may take 15-20 minutes."
+        Write-Warning "Consider breaking PRD into smaller feature documents."
+        Write-Host ""
+        Write-Host "Recommendations:" -ForegroundColor Yellow
+        Write-Host "  - Split by feature/module into separate files"
+        Write-Host "  - Run ralph-prd on each file separately"
+        Write-Host "  - Use -Timeout 1800 for extra time"
+        Write-Host ""
+    }
+    elseif ($size -gt $script:SizeThresholds.LargeSize) {
+        Write-Warning "PRD is large ($size chars). This may take 10-15 minutes."
+    }
+    elseif ($size -gt $script:SizeThresholds.WarningSize) {
+        Write-Host "[INFO] PRD is medium size. Processing may take 5-10 minutes." -ForegroundColor Yellow
+    }
+    
+    return @{
+        Size = $size
+        Lines = $lineCount
+        IsLarge = $size -gt $script:SizeThresholds.LargeSize
+    }
+}
+```
+
+### Ornek Cikti
+
+```
+[INFO] Reading PRD: docs/large-prd.md
+[INFO] PRD size: 250000 characters, 3500 lines
+[WARN] PRD is large (250000 chars). This may take 10-15 minutes.
+[INFO] Using AI: claude
+[INFO] Attempt 1/10...
+```
+
 ## ralph-prd.ps1 Parametreleri
 
 ```powershell
