@@ -153,15 +153,13 @@ hermes -TaskMode -Autonomous
 ```
 my-project/
 ├── PROMPT.md           # Main instructions
-├── @fix_plan.md        # Task list
-├── @AGENT.md           # Build/run instructions
-├── specs/              # Project specifications
-├── src/                # Source code
-├── logs/               # Log files
 ├── tasks/              # Task files (Task Mode)
 │   ├── 001-feature.md  # Feature files
 │   ├── tasks-status.md # Status tracking
 │   └── run-state.md    # Resume checkpoint
+├── src/                # Source code
+├── docs/               # Documentation
+├── logs/               # Log files
 └── status.json         # Live status
 ```
 
@@ -185,10 +183,10 @@ my-project/
 ### Hermes Loop Parameters
 
 ```powershell
-Hermes [-Monitor] [-Calls <int>] [-Timeout <int>] [-VerboseProgress]
-      [-Status] [-ResetCircuit] [-CircuitStatus] [-Help]
-      [-AI <provider>] [-TaskMode] [-AutoBranch] [-AutoCommit]
-      [-StartFrom <TaskId>] [-TaskStatus]
+hermes [-Monitor] [-Calls <int>] [-Timeout <int>] [-VerboseProgress]
+       [-Status] [-ResetCircuit] [-CircuitStatus] [-Help]
+       [-AI <provider>] [-TaskMode] [-AutoBranch] [-AutoCommit]
+       [-StartFrom <TaskId>] [-TaskStatus]
 ```
 
 | Parameter          | Default | Description                            |
@@ -711,7 +709,7 @@ CIRCUIT BREAKER OPENED - Execution halted
 1. Review recent logs:
 
    ```powershell
-   Get-Content logs\Hermes.log -Tail 20
+   Get-Content logs\hermes.log -Tail 20
    ```
 
 2. Check AI output:

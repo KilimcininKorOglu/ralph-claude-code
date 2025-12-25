@@ -23,10 +23,9 @@ cd ecommerce-platform
 ```
 ecommerce-platform/
 ├── PROMPT.md
-├── @fix_plan.md
-├── @AGENT.md
-├── specs/
+├── tasks/
 ├── src/
+├── docs/
 ├── logs/
 └── README.md
 ```
@@ -217,7 +216,7 @@ hermes-monitor
 
 ```powershell
 # Latest log
-Get-Content logs/Hermes.log -Tail 50
+Get-Content logs/hermes.log -Tail 50
 
 # Latest AI output
 Get-ChildItem logs/*_output_*.log | 
