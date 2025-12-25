@@ -11,7 +11,6 @@ $script:Config = @{
     TimeoutSeconds     = 1200      # 20 minutes
     MaxRetries         = 10
     RetryDelaySeconds  = 10
-    ExponentialBackoff = $true
 }
 
 $script:SizeThresholds = @{
@@ -364,10 +363,6 @@ function Invoke-AIWithRetry {
             if ($attempt -lt $MaxRetries) {
                 Write-Host "[INFO] Retrying in $retryDelay seconds..." -ForegroundColor Yellow
                 Start-Sleep -Seconds $retryDelay
-                
-                if ($script:Config.ExponentialBackoff) {
-                    $retryDelay = [Math]::Min($retryDelay * 2, 300)
-                }
             }
             else {
                 Write-Error "All $MaxRetries attempts failed"
