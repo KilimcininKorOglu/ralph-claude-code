@@ -7,13 +7,13 @@ $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $lib = Join-Path (Split-Path -Parent (Split-Path -Parent $here)) "lib"
 . "$lib\TaskReader.ps1"
 
-Describe "TaskReader Module" {
-    BeforeEach {
-        $script:testDir = Join-Path $env:TEMP "hermes-taskreader-test-$(Get-Random)"
-        $script:tasksDir = Join-Path $script:testDir "tasks"
-        New-Item -ItemType Directory -Path $script:tasksDir -Force | Out-Null
-        
-        $featureContent = @"
+function New-TestTasksDirectory {
+    param([string]$BasePath)
+    
+    $tasksDir = Join-Path $BasePath "tasks"
+    New-Item -ItemType Directory -Path $tasksDir -Force | Out-Null
+    
+    $featureContent = @"
 # Feature 1: User Registration
 
 **Feature ID:** F001
@@ -42,8 +42,8 @@ Create the registration form with email and password fields.
 Use React Hook Form for validation.
 
 #### Files to Touch
-- ``src/components/RegisterForm.tsx`` (new)
-- ``src/styles/register.css`` (new)
+- src/components/RegisterForm.tsx (new)
+- src/styles/register.css (new)
 
 #### Dependencies
 - None
@@ -65,7 +65,7 @@ Use React Hook Form for validation.
 Connect form to backend API.
 
 #### Files to Touch
-- ``src/api/auth.ts`` (update)
+- src/api/auth.ts (update)
 
 #### Dependencies
 - T001
@@ -94,120 +94,199 @@ Send verification email after registration.
 - [x] Link works
 
 "@
-        Set-Content -Path (Join-Path $script:tasksDir "001-user-registration.md") -Value $featureContent -Encoding UTF8
-    }
+    Set-Content -Path (Join-Path $tasksDir "001-user-registration.md") -Value $featureContent -Encoding UTF8
     
-    AfterEach {
-        Remove-Item -Recurse -Force $script:testDir -ErrorAction SilentlyContinue
-    }
+    return $BasePath
+}
+
+Describe "TaskReader Module" {
     
     Context "Test-TasksDirectoryExists" {
         It "Returns true when tasks directory exists" {
-            Test-TasksDirectoryExists -BasePath $script:testDir | Should Be $true
+            $testDir = Join-Path $env:TEMP "hermes-tr-test-$(Get-Random)"
+            New-TestTasksDirectory -BasePath $testDir
+            
+            Test-TasksDirectoryExists -BasePath $testDir | Should Be $true
+            
+            Remove-Item -Recurse -Force $testDir -ErrorAction SilentlyContinue
         }
         
         It "Returns false when tasks directory does not exist" {
-            Test-TasksDirectoryExists -BasePath "C:\nonexistent" | Should Be $false
+            Test-TasksDirectoryExists -BasePath "C:\nonexistent-path-xyz" | Should Be $false
         }
     }
     
     Context "Get-FeatureFiles" {
         It "Returns feature files from tasks directory" {
-            $files = Get-FeatureFiles -BasePath $script:testDir
+            $testDir = Join-Path $env:TEMP "hermes-tr-test-$(Get-Random)"
+            New-TestTasksDirectory -BasePath $testDir
+            
+            $files = Get-FeatureFiles -BasePath $testDir
             $files.Count | Should Be 1
             $files[0].Name | Should Be "001-user-registration.md"
+            
+            Remove-Item -Recurse -Force $testDir -ErrorAction SilentlyContinue
         }
         
         It "Returns empty array for nonexistent directory" {
-            $files = Get-FeatureFiles -BasePath "C:\nonexistent"
+            $files = Get-FeatureFiles -BasePath "C:\nonexistent-path-xyz"
             $files | Should BeNullOrEmpty
         }
     }
     
     Context "Read-FeatureFile" {
         It "Parses feature ID correctly" {
-            $feature = Read-FeatureFile -FilePath (Join-Path $script:tasksDir "001-user-registration.md")
+            $testDir = Join-Path $env:TEMP "hermes-tr-test-$(Get-Random)"
+            New-TestTasksDirectory -BasePath $testDir
+            $tasksDir = Join-Path $testDir "tasks"
+            
+            $feature = Read-FeatureFile -FilePath (Join-Path $tasksDir "001-user-registration.md")
             $feature.FeatureId | Should Be "F001"
+            
+            Remove-Item -Recurse -Force $testDir -ErrorAction SilentlyContinue
         }
         
         It "Parses feature name correctly" {
-            $feature = Read-FeatureFile -FilePath (Join-Path $script:tasksDir "001-user-registration.md")
+            $testDir = Join-Path $env:TEMP "hermes-tr-test-$(Get-Random)"
+            New-TestTasksDirectory -BasePath $testDir
+            $tasksDir = Join-Path $testDir "tasks"
+            
+            $feature = Read-FeatureFile -FilePath (Join-Path $tasksDir "001-user-registration.md")
             $feature.FeatureName | Should Be "User Registration"
+            
+            Remove-Item -Recurse -Force $testDir -ErrorAction SilentlyContinue
         }
         
         It "Parses feature status correctly" {
-            $feature = Read-FeatureFile -FilePath (Join-Path $script:tasksDir "001-user-registration.md")
+            $testDir = Join-Path $env:TEMP "hermes-tr-test-$(Get-Random)"
+            New-TestTasksDirectory -BasePath $testDir
+            $tasksDir = Join-Path $testDir "tasks"
+            
+            $feature = Read-FeatureFile -FilePath (Join-Path $tasksDir "001-user-registration.md")
             $feature.Status | Should Be "IN_PROGRESS"
+            
+            Remove-Item -Recurse -Force $testDir -ErrorAction SilentlyContinue
         }
         
         It "Parses tasks correctly" {
-            $feature = Read-FeatureFile -FilePath (Join-Path $script:tasksDir "001-user-registration.md")
+            $testDir = Join-Path $env:TEMP "hermes-tr-test-$(Get-Random)"
+            New-TestTasksDirectory -BasePath $testDir
+            $tasksDir = Join-Path $testDir "tasks"
+            
+            $feature = Read-FeatureFile -FilePath (Join-Path $tasksDir "001-user-registration.md")
             $feature.Tasks.Count | Should Be 3
+            
+            Remove-Item -Recurse -Force $testDir -ErrorAction SilentlyContinue
         }
     }
     
     Context "Get-AllTasks" {
         It "Returns all tasks from all feature files" {
-            $tasks = Get-AllTasks -BasePath $script:testDir
+            $testDir = Join-Path $env:TEMP "hermes-tr-test-$(Get-Random)"
+            New-TestTasksDirectory -BasePath $testDir
+            
+            $tasks = Get-AllTasks -BasePath $testDir
             $tasks.Count | Should Be 3
+            
+            Remove-Item -Recurse -Force $testDir -ErrorAction SilentlyContinue
         }
         
         It "Tasks have correct IDs" {
-            $tasks = Get-AllTasks -BasePath $script:testDir
+            $testDir = Join-Path $env:TEMP "hermes-tr-test-$(Get-Random)"
+            New-TestTasksDirectory -BasePath $testDir
+            
+            $tasks = Get-AllTasks -BasePath $testDir
             $tasks[0].TaskId | Should Be "T001"
             $tasks[1].TaskId | Should Be "T002"
             $tasks[2].TaskId | Should Be "T003"
+            
+            Remove-Item -Recurse -Force $testDir -ErrorAction SilentlyContinue
         }
     }
     
     Context "Get-TaskById" {
         It "Returns task by ID" {
-            $task = Get-TaskById -TaskId "T001" -BasePath $script:testDir
+            $testDir = Join-Path $env:TEMP "hermes-tr-test-$(Get-Random)"
+            New-TestTasksDirectory -BasePath $testDir
+            
+            $task = Get-TaskById -TaskId "T001" -BasePath $testDir
             $task.TaskId | Should Be "T001"
             $task.Name | Should Match "Registration Form"
+            
+            Remove-Item -Recurse -Force $testDir -ErrorAction SilentlyContinue
         }
         
         It "Returns null for nonexistent task" {
-            $task = Get-TaskById -TaskId "T999" -BasePath $script:testDir
+            $testDir = Join-Path $env:TEMP "hermes-tr-test-$(Get-Random)"
+            New-TestTasksDirectory -BasePath $testDir
+            
+            $task = Get-TaskById -TaskId "T999" -BasePath $testDir
             $task | Should BeNullOrEmpty
+            
+            Remove-Item -Recurse -Force $testDir -ErrorAction SilentlyContinue
         }
     }
     
     Context "Get-TasksByStatus" {
         It "Returns NOT_STARTED tasks" {
-            $tasks = Get-TasksByStatus -Status "NOT_STARTED" -BasePath $script:testDir
+            $testDir = Join-Path $env:TEMP "hermes-tr-test-$(Get-Random)"
+            New-TestTasksDirectory -BasePath $testDir
+            
+            $tasks = Get-TasksByStatus -Status "NOT_STARTED" -BasePath $testDir
             $tasks.Count | Should Be 2
+            
+            Remove-Item -Recurse -Force $testDir -ErrorAction SilentlyContinue
         }
         
         It "Returns COMPLETED tasks" {
-            $tasks = Get-TasksByStatus -Status "COMPLETED" -BasePath $script:testDir
+            $testDir = Join-Path $env:TEMP "hermes-tr-test-$(Get-Random)"
+            New-TestTasksDirectory -BasePath $testDir
+            
+            $tasks = Get-TasksByStatus -Status "COMPLETED" -BasePath $testDir
             $tasks.Count | Should Be 1
             $tasks[0].TaskId | Should Be "T003"
+            
+            Remove-Item -Recurse -Force $testDir -ErrorAction SilentlyContinue
         }
     }
     
     Context "Test-TaskDependenciesMet" {
         It "Returns true for task with no dependencies" {
-            $task = Get-TaskById -TaskId "T001" -BasePath $script:testDir
-            Test-TaskDependenciesMet -Task $task -BasePath $script:testDir | Should Be $true
+            $testDir = Join-Path $env:TEMP "hermes-tr-test-$(Get-Random)"
+            New-TestTasksDirectory -BasePath $testDir
+            
+            $task = Get-TaskById -TaskId "T001" -BasePath $testDir
+            Test-TaskDependenciesMet -Task $task -BasePath $testDir | Should Be $true
+            
+            Remove-Item -Recurse -Force $testDir -ErrorAction SilentlyContinue
         }
         
         It "Returns false for task with unmet dependencies" {
-            $task = Get-TaskById -TaskId "T002" -BasePath $script:testDir
-            Test-TaskDependenciesMet -Task $task -BasePath $script:testDir | Should Be $false
+            $testDir = Join-Path $env:TEMP "hermes-tr-test-$(Get-Random)"
+            New-TestTasksDirectory -BasePath $testDir
+            
+            $task = Get-TaskById -TaskId "T002" -BasePath $testDir
+            Test-TaskDependenciesMet -Task $task -BasePath $testDir | Should Be $false
+            
+            Remove-Item -Recurse -Force $testDir -ErrorAction SilentlyContinue
         }
     }
     
     Context "Get-NextTask" {
         It "Returns first available task" {
-            $task = Get-NextTask -BasePath $script:testDir
+            $testDir = Join-Path $env:TEMP "hermes-tr-test-$(Get-Random)"
+            New-TestTasksDirectory -BasePath $testDir
+            
+            $task = Get-NextTask -BasePath $testDir
             $task.TaskId | Should Be "T001"
+            
+            Remove-Item -Recurse -Force $testDir -ErrorAction SilentlyContinue
         }
         
         It "Returns null when all tasks completed" {
-            $completedDir = Join-Path $env:TEMP "hermes-completed-$(Get-Random)"
-            $completedTasksDir = Join-Path $completedDir "tasks"
-            New-Item -ItemType Directory -Path $completedTasksDir -Force | Out-Null
+            $testDir = Join-Path $env:TEMP "hermes-tr-test-$(Get-Random)"
+            $tasksDir = Join-Path $testDir "tasks"
+            New-Item -ItemType Directory -Path $tasksDir -Force | Out-Null
             
             $content = @"
 # Feature 1: Done
@@ -219,65 +298,110 @@ Send verification email after registration.
 
 **Status:** COMPLETED
 "@
-            Set-Content -Path (Join-Path $completedTasksDir "001-done.md") -Value $content -Encoding UTF8
+            Set-Content -Path (Join-Path $tasksDir "001-done.md") -Value $content -Encoding UTF8
             
-            $task = Get-NextTask -BasePath $completedDir
+            $task = Get-NextTask -BasePath $testDir
             $task | Should BeNullOrEmpty
             
-            Remove-Item -Recurse -Force $completedDir -ErrorAction SilentlyContinue
+            Remove-Item -Recurse -Force $testDir -ErrorAction SilentlyContinue
         }
     }
     
     Context "Get-TaskProgress" {
         It "Returns correct total count" {
-            $progress = Get-TaskProgress -BasePath $script:testDir
+            $testDir = Join-Path $env:TEMP "hermes-tr-test-$(Get-Random)"
+            New-TestTasksDirectory -BasePath $testDir
+            
+            $progress = Get-TaskProgress -BasePath $testDir
             $progress.Total | Should Be 3
+            
+            Remove-Item -Recurse -Force $testDir -ErrorAction SilentlyContinue
         }
         
         It "Returns correct completed count" {
-            $progress = Get-TaskProgress -BasePath $script:testDir
+            $testDir = Join-Path $env:TEMP "hermes-tr-test-$(Get-Random)"
+            New-TestTasksDirectory -BasePath $testDir
+            
+            $progress = Get-TaskProgress -BasePath $testDir
             $progress.Completed | Should Be 1
+            
+            Remove-Item -Recurse -Force $testDir -ErrorAction SilentlyContinue
         }
         
         It "Returns correct not started count" {
-            $progress = Get-TaskProgress -BasePath $script:testDir
+            $testDir = Join-Path $env:TEMP "hermes-tr-test-$(Get-Random)"
+            New-TestTasksDirectory -BasePath $testDir
+            
+            $progress = Get-TaskProgress -BasePath $testDir
             $progress.NotStarted | Should Be 2
+            
+            Remove-Item -Recurse -Force $testDir -ErrorAction SilentlyContinue
         }
         
         It "Calculates percentage correctly" {
-            $progress = Get-TaskProgress -BasePath $script:testDir
-            $progress.Percentage | Should BeGreaterOrEqual 33
-            $progress.Percentage | Should BeLessOrEqual 34
+            $testDir = Join-Path $env:TEMP "hermes-tr-test-$(Get-Random)"
+            New-TestTasksDirectory -BasePath $testDir
+            
+            $progress = Get-TaskProgress -BasePath $testDir
+            ($progress.Percentage -ge 33) | Should Be $true
+            ($progress.Percentage -le 34) | Should Be $true
+            
+            Remove-Item -Recurse -Force $testDir -ErrorAction SilentlyContinue
         }
     }
     
     Context "Get-FeatureProgress" {
         It "Returns correct progress for feature" {
-            $progress = Get-FeatureProgress -FeatureId "F001" -BasePath $script:testDir
+            $testDir = Join-Path $env:TEMP "hermes-tr-test-$(Get-Random)"
+            New-TestTasksDirectory -BasePath $testDir
+            
+            $progress = Get-FeatureProgress -FeatureId "F001" -BasePath $testDir
             $progress.Total | Should Be 3
             $progress.Completed | Should Be 1
+            
+            Remove-Item -Recurse -Force $testDir -ErrorAction SilentlyContinue
         }
         
         It "IsComplete is false when tasks remain" {
-            $progress = Get-FeatureProgress -FeatureId "F001" -BasePath $script:testDir
+            $testDir = Join-Path $env:TEMP "hermes-tr-test-$(Get-Random)"
+            New-TestTasksDirectory -BasePath $testDir
+            
+            $progress = Get-FeatureProgress -FeatureId "F001" -BasePath $testDir
             $progress.IsComplete | Should Be $false
+            
+            Remove-Item -Recurse -Force $testDir -ErrorAction SilentlyContinue
         }
     }
     
     Context "Task Parsing Details" {
         It "Parses files to touch correctly" {
-            $task = Get-TaskById -TaskId "T001" -BasePath $script:testDir
-            $task.FilesToTouch.Count | Should BeGreaterOrEqual 2
+            $testDir = Join-Path $env:TEMP "hermes-tr-test-$(Get-Random)"
+            New-TestTasksDirectory -BasePath $testDir
+            
+            $task = Get-TaskById -TaskId "T001" -BasePath $testDir
+            ($task.FilesToTouch.Count -ge 2) | Should Be $true
+            
+            Remove-Item -Recurse -Force $testDir -ErrorAction SilentlyContinue
         }
         
         It "Parses dependencies correctly" {
-            $task = Get-TaskById -TaskId "T002" -BasePath $script:testDir
-            $task.Dependencies | Should Contain "T001"
+            $testDir = Join-Path $env:TEMP "hermes-tr-test-$(Get-Random)"
+            New-TestTasksDirectory -BasePath $testDir
+            
+            $task = Get-TaskById -TaskId "T002" -BasePath $testDir
+            ($task.Dependencies -contains "T001") | Should Be $true
+            
+            Remove-Item -Recurse -Force $testDir -ErrorAction SilentlyContinue
         }
         
         It "Parses success criteria correctly" {
-            $task = Get-TaskById -TaskId "T001" -BasePath $script:testDir
-            $task.SuccessCriteria.Count | Should BeGreaterOrEqual 2
+            $testDir = Join-Path $env:TEMP "hermes-tr-test-$(Get-Random)"
+            New-TestTasksDirectory -BasePath $testDir
+            
+            $task = Get-TaskById -TaskId "T001" -BasePath $testDir
+            ($task.SuccessCriteria.Count -ge 2) | Should Be $true
+            
+            Remove-Item -Recurse -Force $testDir -ErrorAction SilentlyContinue
         }
     }
 }

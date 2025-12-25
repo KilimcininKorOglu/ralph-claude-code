@@ -86,7 +86,7 @@ Describe "AIProvider Module" {
             "# Small PRD`nSome content" | Set-Content $smallFile
             
             $result = Test-PrdSize -PrdFile $smallFile
-            $result.Size | Should BeLessThan 100
+            ($result.Size -lt 100) | Should Be $true
             $result.IsLarge | Should Be $false
         }
         
@@ -99,7 +99,7 @@ Describe "AIProvider Module" {
             $largeContent | Set-Content $largeFile
             
             $result = Test-PrdSize -PrdFile $largeFile
-            $result.Size | Should BeGreaterThan 200000
+            ($result.Size -gt 200000) | Should Be $true
             $result.IsLarge | Should Be $true
         }
     }

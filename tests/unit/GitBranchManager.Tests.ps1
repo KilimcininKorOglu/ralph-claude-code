@@ -23,7 +23,7 @@ Describe "GitBranchManager Module" {
         It "Truncates long names" {
             $longName = "This is a very long feature name that exceeds thirty characters"
             $name = Get-FeatureBranchName -FeatureId "F003" -FeatureName $longName
-            $name.Length | Should BeLessOrEqual 50
+            ($name.Length -le 50) | Should Be $true
         }
         
         It "Handles unicode characters" {
@@ -35,7 +35,7 @@ Describe "GitBranchManager Module" {
     Context "Get-MainBranch" {
         It "Returns main or master" {
             $main = Get-MainBranch
-            @("main", "master") | Should Contain $main
+            ($main -eq "main" -or $main -eq "master") | Should Be $true
         }
     }
     
@@ -64,7 +64,7 @@ Describe "GitBranchManager Module" {
         It "Returns boolean" {
             if (Test-Path ".git") {
                 $clean = Test-WorkingTreeClean
-                @($true, $false) | Should Contain $clean
+                ($clean -eq $true -or $clean -eq $false) | Should Be $true
             } else {
                 Set-TestInconclusive "Not in a git repository"
             }
@@ -75,7 +75,7 @@ Describe "GitBranchManager Module" {
         It "Returns boolean" {
             if (Test-Path ".git") {
                 $staged = Test-StagedChanges
-                @($true, $false) | Should Contain $staged
+                ($staged -eq $true -or $staged -eq $false) | Should Be $true
             } else {
                 Set-TestInconclusive "Not in a git repository"
             }

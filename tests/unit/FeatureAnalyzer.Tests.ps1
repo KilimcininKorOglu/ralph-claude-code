@@ -168,7 +168,7 @@ Describe "FeatureAnalyzer Module" {
         It "Should truncate long names" {
             $longName = "This is a very long feature name that should be truncated"
             $result = Get-FeatureFileName -FeatureNumber 1 -FeatureName $longName
-            $result.Length | Should BeLessThan 50
+            ($result.Length -lt 50) | Should Be $true
         }
     }
     

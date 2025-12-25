@@ -33,17 +33,17 @@ Describe "TableFormatter Module" {
     Context "Format-TableSeparator" {
         It "Should create top separator with correct length" {
             $sep = Format-TableSeparator -Widths @(5, 10) -Type "Top"
-            $sep.Length | Should BeGreaterThan 15
+            ($sep.Length -gt 15) | Should Be $true
         }
         
         It "Should create middle separator with correct length" {
             $sep = Format-TableSeparator -Widths @(5, 10) -Type "Middle"
-            $sep.Length | Should BeGreaterThan 15
+            ($sep.Length -gt 15) | Should Be $true
         }
         
         It "Should create bottom separator with correct length" {
             $sep = Format-TableSeparator -Widths @(5, 10) -Type "Bottom"
-            $sep.Length | Should BeGreaterThan 15
+            ($sep.Length -gt 15) | Should Be $true
         }
     }
     
@@ -61,7 +61,7 @@ Describe "TableFormatter Module" {
         
         It "Should pad short values" {
             $row = Format-TableRow -Values @("X") -Widths @(10)
-            $row.Length | Should BeGreaterThan 10
+            ($row.Length -gt 10) | Should Be $true
         }
     }
     
@@ -76,7 +76,7 @@ Describe "TableFormatter Module" {
                 @{ TaskId = "T001"; Name = "Test Task"; Status = "COMPLETED"; Priority = "P1"; FeatureId = "F001" }
             )
             $result = Format-TaskTable -Tasks $tasks
-            $result.Count | Should BeGreaterThan 3
+            ($result.Count -gt 3) | Should Be $true
             ($result -join "`n") | Should Match "T001"
             ($result -join "`n") | Should Match "Test Task"
         }

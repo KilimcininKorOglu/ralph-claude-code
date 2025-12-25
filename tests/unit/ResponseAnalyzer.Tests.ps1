@@ -52,7 +52,7 @@ Describe "ResponseAnalyzer Module" {
             Invoke-ResponseAnalysis -OutputFile "test_output.log" -LoopNumber 1
             
             $result = Get-Content ".response_analysis" -Raw | ConvertFrom-Json
-            $result.analysis.output_length | Should BeGreaterThan 0
+            ($result.analysis.output_length -gt 0) | Should Be $true
         }
     }
     
@@ -192,7 +192,7 @@ Error: sixth error
             
             $result = Get-Content ".response_analysis" -Raw | ConvertFrom-Json
             $result.analysis.is_stuck | Should Be $true
-            $result.analysis.error_count | Should BeGreaterThan 5
+            ($result.analysis.error_count -gt 5) | Should Be $true
         }
         
         It "should not flag as stuck with few errors" {
@@ -236,7 +236,7 @@ Continuing with work
             Invoke-ResponseAnalysis -OutputFile "test_output.log" -LoopNumber 1
             
             $result = Get-Content ".response_analysis" -Raw | ConvertFrom-Json
-            $result.analysis.confidence_score | Should BeGreaterOrEqual 10
+            ($result.analysis.confidence_score -ge 10) | Should Be $true
         }
         
         It "should have max confidence for EXIT_SIGNAL true" {
@@ -273,7 +273,7 @@ All tests passed
             Update-ExitSignals
             
             $signals = Get-Content ".exit_signals" -Raw | ConvertFrom-Json
-            $signals.test_only_loops | Should Contain 5
+            ($signals.test_only_loops -contains 5) | Should Be $true
         }
         
         It "should track done signals" {
@@ -283,7 +283,7 @@ All tests passed
             Update-ExitSignals
             
             $signals = Get-Content ".exit_signals" -Raw | ConvertFrom-Json
-            $signals.done_signals | Should Contain 3
+            ($signals.done_signals -contains 3) | Should Be $true
         }
         
         It "should keep rolling window of 5 signals" {
@@ -298,7 +298,7 @@ All tests passed
             Update-ExitSignals
             
             $signals = Get-Content ".exit_signals" -Raw | ConvertFrom-Json
-            @($signals.test_only_loops).Count | Should BeLessOrEqual 5
+            (@($signals.test_only_loops).Count -le 5) | Should Be $true
         }
     }
     

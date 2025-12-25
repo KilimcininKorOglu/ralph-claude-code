@@ -158,7 +158,7 @@ Follow best practices.
     Context "Get-MinimalTaskPrompt" {
         It "Generates compact prompt" {
             $minimal = Get-MinimalTaskPrompt -Task $script:testTask
-            $minimal.Length | Should BeLessThan 1000
+            ($minimal.Length -lt 1000) | Should Be $true
         }
         
         It "Includes task ID and name" {

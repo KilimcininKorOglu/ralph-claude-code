@@ -229,7 +229,7 @@ Describe "CircuitBreaker Module" {
             Add-LoopResult -LoopNumber 2 -FilesChanged 0
             
             $history = Get-Content ".circuit_breaker_history" -Raw | ConvertFrom-Json
-            $history.Count | Should BeGreaterThan 0
+            ($history.Count -gt 0) | Should Be $true
             $history[-1].to_state | Should Be "HALF_OPEN"
         }
         
