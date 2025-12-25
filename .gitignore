@@ -36,3 +36,5 @@ target/
 .idea/
 *.swp
 *.swo
+
+plan/
