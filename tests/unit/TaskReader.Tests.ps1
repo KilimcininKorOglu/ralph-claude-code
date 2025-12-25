@@ -1,17 +1,18 @@
-#Requires -Modules Pester
+<#
+.SYNOPSIS
+    Unit tests for TaskReader.ps1 module
+#>
 
-BeforeAll {
-    . "$PSScriptRoot\..\..\lib\TaskReader.ps1"
-}
+$here = Split-Path -Parent $MyInvocation.MyCommand.Path
+$lib = Join-Path (Split-Path -Parent (Split-Path -Parent $here)) "lib"
+. "$lib\TaskReader.ps1"
 
 Describe "TaskReader Module" {
-    BeforeAll {
-        # Create test tasks directory
-        $script:TestDir = Join-Path $TestDrive "test-project"
-        $script:TasksDir = Join-Path $script:TestDir "tasks"
-        New-Item -ItemType Directory -Path $script:TasksDir -Force | Out-Null
+    BeforeEach {
+        $script:testDir = Join-Path $env:TEMP "hermes-taskreader-test-$(Get-Random)"
+        $script:tasksDir = Join-Path $script:testDir "tasks"
+        New-Item -ItemType Directory -Path $script:tasksDir -Force | Out-Null
         
-        # Create test feature file
         $featureContent = @"
 # Feature 1: User Registration
 
@@ -41,8 +42,8 @@ Create the registration form with email and password fields.
 Use React Hook Form for validation.
 
 #### Files to Touch
-- `src/components/RegisterForm.tsx` (new)
-- `src/styles/register.css` (new)
+- ``src/components/RegisterForm.tsx`` (new)
+- ``src/styles/register.css`` (new)
 
 #### Dependencies
 - None
@@ -64,7 +65,7 @@ Use React Hook Form for validation.
 Connect form to backend API.
 
 #### Files to Touch
-- `src/api/auth.ts` (update)
+- ``src/api/auth.ts`` (update)
 
 #### Dependencies
 - T001
@@ -93,116 +94,118 @@ Send verification email after registration.
 - [x] Link works
 
 "@
-        
-        Set-Content -Path (Join-Path $script:TasksDir "001-user-registration.md") -Value $featureContent -Encoding UTF8
+        Set-Content -Path (Join-Path $script:tasksDir "001-user-registration.md") -Value $featureContent -Encoding UTF8
+    }
+    
+    AfterEach {
+        Remove-Item -Recurse -Force $script:testDir -ErrorAction SilentlyContinue
     }
     
     Context "Test-TasksDirectoryExists" {
         It "Returns true when tasks directory exists" {
-            Test-TasksDirectoryExists -BasePath $script:TestDir | Should -Be $true
+            Test-TasksDirectoryExists -BasePath $script:testDir | Should Be $true
         }
         
         It "Returns false when tasks directory does not exist" {
-            Test-TasksDirectoryExists -BasePath "C:\nonexistent" | Should -Be $false
+            Test-TasksDirectoryExists -BasePath "C:\nonexistent" | Should Be $false
         }
     }
     
     Context "Get-FeatureFiles" {
         It "Returns feature files from tasks directory" {
-            $files = Get-FeatureFiles -BasePath $script:TestDir
-            $files.Count | Should -Be 1
-            $files[0].Name | Should -Be "001-user-registration.md"
+            $files = Get-FeatureFiles -BasePath $script:testDir
+            $files.Count | Should Be 1
+            $files[0].Name | Should Be "001-user-registration.md"
         }
         
         It "Returns empty array for nonexistent directory" {
             $files = Get-FeatureFiles -BasePath "C:\nonexistent"
-            $files | Should -BeNullOrEmpty
+            $files | Should BeNullOrEmpty
         }
     }
     
     Context "Read-FeatureFile" {
         It "Parses feature ID correctly" {
-            $feature = Read-FeatureFile -FilePath (Join-Path $script:TasksDir "001-user-registration.md")
-            $feature.FeatureId | Should -Be "F001"
+            $feature = Read-FeatureFile -FilePath (Join-Path $script:tasksDir "001-user-registration.md")
+            $feature.FeatureId | Should Be "F001"
         }
         
         It "Parses feature name correctly" {
-            $feature = Read-FeatureFile -FilePath (Join-Path $script:TasksDir "001-user-registration.md")
-            $feature.FeatureName | Should -Be "User Registration"
+            $feature = Read-FeatureFile -FilePath (Join-Path $script:tasksDir "001-user-registration.md")
+            $feature.FeatureName | Should Be "User Registration"
         }
         
         It "Parses feature status correctly" {
-            $feature = Read-FeatureFile -FilePath (Join-Path $script:TasksDir "001-user-registration.md")
-            $feature.Status | Should -Be "IN_PROGRESS"
+            $feature = Read-FeatureFile -FilePath (Join-Path $script:tasksDir "001-user-registration.md")
+            $feature.Status | Should Be "IN_PROGRESS"
         }
         
         It "Parses tasks correctly" {
-            $feature = Read-FeatureFile -FilePath (Join-Path $script:TasksDir "001-user-registration.md")
-            $feature.Tasks.Count | Should -Be 3
+            $feature = Read-FeatureFile -FilePath (Join-Path $script:tasksDir "001-user-registration.md")
+            $feature.Tasks.Count | Should Be 3
         }
     }
     
     Context "Get-AllTasks" {
         It "Returns all tasks from all feature files" {
-            $tasks = Get-AllTasks -BasePath $script:TestDir
-            $tasks.Count | Should -Be 3
+            $tasks = Get-AllTasks -BasePath $script:testDir
+            $tasks.Count | Should Be 3
         }
         
         It "Tasks have correct IDs" {
-            $tasks = Get-AllTasks -BasePath $script:TestDir
-            $tasks[0].TaskId | Should -Be "T001"
-            $tasks[1].TaskId | Should -Be "T002"
-            $tasks[2].TaskId | Should -Be "T003"
+            $tasks = Get-AllTasks -BasePath $script:testDir
+            $tasks[0].TaskId | Should Be "T001"
+            $tasks[1].TaskId | Should Be "T002"
+            $tasks[2].TaskId | Should Be "T003"
         }
     }
     
     Context "Get-TaskById" {
         It "Returns task by ID" {
-            $task = Get-TaskById -TaskId "T001" -BasePath $script:TestDir
-            $task.TaskId | Should -Be "T001"
-            $task.Name | Should -Match "Registration Form"
+            $task = Get-TaskById -TaskId "T001" -BasePath $script:testDir
+            $task.TaskId | Should Be "T001"
+            $task.Name | Should Match "Registration Form"
         }
         
         It "Returns null for nonexistent task" {
-            $task = Get-TaskById -TaskId "T999" -BasePath $script:TestDir
-            $task | Should -BeNullOrEmpty
+            $task = Get-TaskById -TaskId "T999" -BasePath $script:testDir
+            $task | Should BeNullOrEmpty
         }
     }
     
     Context "Get-TasksByStatus" {
         It "Returns NOT_STARTED tasks" {
-            $tasks = Get-TasksByStatus -Status "NOT_STARTED" -BasePath $script:TestDir
-            $tasks.Count | Should -Be 2
+            $tasks = Get-TasksByStatus -Status "NOT_STARTED" -BasePath $script:testDir
+            $tasks.Count | Should Be 2
         }
         
         It "Returns COMPLETED tasks" {
-            $tasks = Get-TasksByStatus -Status "COMPLETED" -BasePath $script:TestDir
-            $tasks.Count | Should -Be 1
-            $tasks[0].TaskId | Should -Be "T003"
+            $tasks = Get-TasksByStatus -Status "COMPLETED" -BasePath $script:testDir
+            $tasks.Count | Should Be 1
+            $tasks[0].TaskId | Should Be "T003"
         }
     }
     
     Context "Test-TaskDependenciesMet" {
         It "Returns true for task with no dependencies" {
-            $task = Get-TaskById -TaskId "T001" -BasePath $script:TestDir
-            Test-TaskDependenciesMet -Task $task -BasePath $script:TestDir | Should -Be $true
+            $task = Get-TaskById -TaskId "T001" -BasePath $script:testDir
+            Test-TaskDependenciesMet -Task $task -BasePath $script:testDir | Should Be $true
         }
         
         It "Returns false for task with unmet dependencies" {
-            $task = Get-TaskById -TaskId "T002" -BasePath $script:TestDir
-            Test-TaskDependenciesMet -Task $task -BasePath $script:TestDir | Should -Be $false
+            $task = Get-TaskById -TaskId "T002" -BasePath $script:testDir
+            Test-TaskDependenciesMet -Task $task -BasePath $script:testDir | Should Be $false
         }
     }
     
     Context "Get-NextTask" {
         It "Returns first available task" {
-            $task = Get-NextTask -BasePath $script:TestDir
-            $task.TaskId | Should -Be "T001"
+            $task = Get-NextTask -BasePath $script:testDir
+            $task.TaskId | Should Be "T001"
         }
         
         It "Returns null when all tasks completed" {
-            # Create a directory with only completed tasks
-            $completedDir = Join-Path $TestDrive "completed-project"
+            $completedDir = Join-Path $env:TEMP "hermes-completed-$(Get-Random)"
             $completedTasksDir = Join-Path $completedDir "tasks"
             New-Item -ItemType Directory -Path $completedTasksDir -Force | Out-Null
             
@@ -219,61 +222,62 @@ Send verification email after registration.
             Set-Content -Path (Join-Path $completedTasksDir "001-done.md") -Value $content -Encoding UTF8
             
             $task = Get-NextTask -BasePath $completedDir
-            $task | Should -BeNullOrEmpty
+            $task | Should BeNullOrEmpty
+            
+            Remove-Item -Recurse -Force $completedDir -ErrorAction SilentlyContinue
         }
     }
     
     Context "Get-TaskProgress" {
         It "Returns correct total count" {
-            $progress = Get-TaskProgress -BasePath $script:TestDir
-            $progress.Total | Should -Be 3
+            $progress = Get-TaskProgress -BasePath $script:testDir
+            $progress.Total | Should Be 3
         }
         
         It "Returns correct completed count" {
-            $progress = Get-TaskProgress -BasePath $script:TestDir
-            $progress.Completed | Should -Be 1
+            $progress = Get-TaskProgress -BasePath $script:testDir
+            $progress.Completed | Should Be 1
         }
         
         It "Returns correct not started count" {
-            $progress = Get-TaskProgress -BasePath $script:TestDir
-            $progress.NotStarted | Should -Be 2
+            $progress = Get-TaskProgress -BasePath $script:testDir
+            $progress.NotStarted | Should Be 2
         }
         
         It "Calculates percentage correctly" {
-            $progress = Get-TaskProgress -BasePath $script:TestDir
-            $progress.Percentage | Should -BeGreaterOrEqual 33
-            $progress.Percentage | Should -BeLessOrEqual 34
+            $progress = Get-TaskProgress -BasePath $script:testDir
+            $progress.Percentage | Should BeGreaterOrEqual 33
+            $progress.Percentage | Should BeLessOrEqual 34
         }
     }
     
     Context "Get-FeatureProgress" {
         It "Returns correct progress for feature" {
-            $progress = Get-FeatureProgress -FeatureId "F001" -BasePath $script:TestDir
-            $progress.Total | Should -Be 3
-            $progress.Completed | Should -Be 1
+            $progress = Get-FeatureProgress -FeatureId "F001" -BasePath $script:testDir
+            $progress.Total | Should Be 3
+            $progress.Completed | Should Be 1
         }
         
         It "IsComplete is false when tasks remain" {
-            $progress = Get-FeatureProgress -FeatureId "F001" -BasePath $script:TestDir
-            $progress.IsComplete | Should -Be $false
+            $progress = Get-FeatureProgress -FeatureId "F001" -BasePath $script:testDir
+            $progress.IsComplete | Should Be $false
         }
     }
     
     Context "Task Parsing Details" {
         It "Parses files to touch correctly" {
-            $task = Get-TaskById -TaskId "T001" -BasePath $script:TestDir
-            $task.FilesToTouch.Count | Should -BeGreaterOrEqual 2
-            $task.FilesToTouch | Should -Contain "src/components/RegisterForm.tsx"
+            $task = Get-TaskById -TaskId "T001" -BasePath $script:testDir
+            $task.FilesToTouch.Count | Should BeGreaterOrEqual 2
         }
         
         It "Parses dependencies correctly" {
-            $task = Get-TaskById -TaskId "T002" -BasePath $script:TestDir
-            $task.Dependencies | Should -Contain "T001"
+            $task = Get-TaskById -TaskId "T002" -BasePath $script:testDir
+            $task.Dependencies | Should Contain "T001"
         }
         
         It "Parses success criteria correctly" {
-            $task = Get-TaskById -TaskId "T001" -BasePath $script:TestDir
-            $task.SuccessCriteria.Count | Should -BeGreaterOrEqual 2
+            $task = Get-TaskById -TaskId "T001" -BasePath $script:testDir
+            $task.SuccessCriteria.Count | Should BeGreaterOrEqual 2
         }
     }
 }

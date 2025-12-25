@@ -46,7 +46,7 @@ $hermesConfig = Get-HermesConfig
 
 function Show-Usage {
     Write-Host ""
-    Write-Host "Hermes Add - Single Feature Addition" -ForegroundColor Cyan
+    Write-Host "Hermes Autonomous Agent - Feature Addition" -ForegroundColor Cyan
     Write-Host "====================================" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "Usage:" -ForegroundColor Yellow
@@ -78,7 +78,7 @@ if ($Help -or -not $Feature) {
 }
 
 Write-Host ""
-Write-Host "Hermes Add - Single Feature Addition" -ForegroundColor Cyan
+Write-Host "Hermes Autonomous Agent - Feature Addition" -ForegroundColor Cyan
 Write-Host "====================================" -ForegroundColor Cyan
 Write-Host ""
 

@@ -2,7 +2,7 @@
 
 <#
 .SYNOPSIS
-    Hermes for Claude Code - Windows Installation Script
+    Hermes Autonomous Agent - Windows Installation Script
 .DESCRIPTION
     Installs Hermes globally on Windows systems.
     Creates commands: Hermes, hermes-monitor, hermes-setup, hermes-import
@@ -33,7 +33,7 @@ $script:ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 function Show-Help {
     Write-Host ""
-    Write-Host "Hermes for Claude Code - Windows Installation" -ForegroundColor Cyan
+    Write-Host "Hermes Autonomous Agent - Windows Installation" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "Usage: .\install.ps1 [OPTIONS]" -ForegroundColor White
     Write-Host ""
@@ -226,7 +226,7 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File "%LOCALAPPDATA%\Hermes\hermes_impo
     # hermes.ps1
     $hermesPs1 = @"
 #Requires -Version 7.0
-# Hermes for Claude Code - PowerShell Wrapper
+# Hermes Autonomous Agent - PowerShell Wrapper
 `$HermesHome = Join-Path `$env:LOCALAPPDATA "Hermes"
 & (Join-Path `$HermesHome "hermes_loop.ps1") @args
 "@
@@ -269,7 +269,7 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File "%LOCALAPPDATA%\Hermes\hermes-prd.
     # hermes-prd.ps1
     $prdPs1 = @"
 #Requires -Version 7.0
-# Hermes PRD Parser - PowerShell Wrapper
+# Hermes Autonomous Agent - PRD Parser - PowerShell Wrapper
 `$HermesHome = Join-Path `$env:LOCALAPPDATA "Hermes"
 & (Join-Path `$HermesHome "hermes-prd.ps1") @args
 "@
@@ -393,7 +393,7 @@ function Uninstall-Hermes {
         Removes Hermes installation
     #>
     
-    Write-Log -Level "INFO" -Message "Uninstalling Hermes for Claude Code..."
+    Write-Log -Level "INFO" -Message "Uninstalling Hermes Autonomous Agent..."
     
     # Remove from PATH
     Remove-FromPath
@@ -408,7 +408,7 @@ function Uninstall-Hermes {
     }
     
     Write-Host ""
-    Write-Log -Level "SUCCESS" -Message "Hermes for Claude Code uninstalled successfully"
+    Write-Log -Level "SUCCESS" -Message "Hermes Autonomous Agent uninstalled successfully"
     Write-Host ""
 }
 
@@ -419,7 +419,7 @@ function Install-Hermes {
     #>
     
     Write-Host ""
-    Write-Host "Installing Hermes for Claude Code globally..." -ForegroundColor Cyan
+    Write-Host "Installing Hermes Autonomous Agent globally..." -ForegroundColor Cyan
     Write-Host ""
     
     # Check dependencies
@@ -444,7 +444,7 @@ function Install-Hermes {
     
     # Success message
     Write-Host ""
-    Write-Log -Level "SUCCESS" -Message "Hermes for Claude Code installed successfully!"
+    Write-Log -Level "SUCCESS" -Message "Hermes Autonomous Agent installed successfully!"
     Write-Host ""
     Write-Host "Global commands available:" -ForegroundColor Cyan
     Write-Host "  hermes -TaskMode          Start Hermes Task Mode"

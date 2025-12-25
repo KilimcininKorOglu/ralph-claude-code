@@ -2,7 +2,7 @@
 
 <#
 .SYNOPSIS
-    Hermes Monitor Dashboard - Windows PowerShell Version
+    Hermes Autonomous Agent - Monitor - Windows PowerShell Version
 .DESCRIPTION
     Live monitoring dashboard for Hermes Task Mode.
     Displays real-time information about task progress, current execution,
@@ -43,7 +43,7 @@ if (Test-Path $taskReaderPath) {
 
 function Show-Help {
     Write-Host ""
-    Write-Host "Hermes Monitor Dashboard" -ForegroundColor Cyan
+    Write-Host "Hermes Autonomous Agent - Monitor" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "Usage: hermes-monitor [OPTIONS]" -ForegroundColor White
     Write-Host ""

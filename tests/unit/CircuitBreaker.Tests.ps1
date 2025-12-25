@@ -1,73 +1,61 @@
-#Requires -Module Pester
-
 <#
 .SYNOPSIS
     Unit tests for CircuitBreaker.ps1 module
 #>
 
-BeforeAll {
-    # Import the module under test
-    . "$PSScriptRoot\..\..\lib\CircuitBreaker.ps1"
-    
-    # Store original location
-    $script:OriginalLocation = Get-Location
-    
-    # Create temp directory for tests
-    $script:TestDir = Join-Path $env:TEMP "HermesTests_$(Get-Random)"
-    New-Item -ItemType Directory -Path $script:TestDir -Force | Out-Null
-    Set-Location $script:TestDir
-}
-
-AfterAll {
-    # Return to original location and cleanup
-    Set-Location $script:OriginalLocation
-    if (Test-Path $script:TestDir) {
-        Remove-Item -Path $script:TestDir -Recurse -Force -ErrorAction SilentlyContinue
-    }
-}
+$here = Split-Path -Parent $MyInvocation.MyCommand.Path
+$lib = Join-Path (Split-Path -Parent (Split-Path -Parent $here)) "lib"
+. "$lib\CircuitBreaker.ps1"
 
 Describe "CircuitBreaker Module" {
     BeforeEach {
-        # Clean up state files before each test
+        $script:testDir = Join-Path $env:TEMP "hermes-circuit-test-$(Get-Random)"
+        New-Item -ItemType Directory -Path $script:testDir -Force | Out-Null
+        Push-Location $script:testDir
         Remove-Item ".circuit_breaker_state" -ErrorAction SilentlyContinue
         Remove-Item ".circuit_breaker_history" -ErrorAction SilentlyContinue
+    }
+    
+    AfterEach {
+        Pop-Location
+        Remove-Item -Recurse -Force $script:testDir -ErrorAction SilentlyContinue
     }
     
     Context "Initialize-CircuitBreaker" {
         It "should create state file on initialization" {
             Initialize-CircuitBreaker
-            ".circuit_breaker_state" | Should -Exist
+            Test-Path ".circuit_breaker_state" | Should Be $true
         }
         
         It "should create history file on initialization" {
             Initialize-CircuitBreaker
-            ".circuit_breaker_history" | Should -Exist
+            Test-Path ".circuit_breaker_history" | Should Be $true
         }
         
         It "should initialize state to CLOSED" {
             Initialize-CircuitBreaker
             $state = Get-CircuitState
-            $state | Should -Be "CLOSED"
+            $state | Should Be "CLOSED"
         }
         
         It "should initialize consecutive_no_progress to 0" {
             Initialize-CircuitBreaker
             $data = Get-Content ".circuit_breaker_state" -Raw | ConvertFrom-Json
-            $data.consecutive_no_progress | Should -Be 0
+            $data.consecutive_no_progress | Should Be 0
         }
         
         It "should handle corrupted state file" {
             "invalid json{{{" | Set-Content ".circuit_breaker_state"
             Initialize-CircuitBreaker
             $state = Get-CircuitState
-            $state | Should -Be "CLOSED"
+            $state | Should Be "CLOSED"
         }
     }
     
     Context "Get-CircuitState" {
         It "should return CLOSED when no state file exists" {
             $state = Get-CircuitState
-            $state | Should -Be "CLOSED"
+            $state | Should Be "CLOSED"
         }
         
         It "should return stored state" {
@@ -77,14 +65,14 @@ Describe "CircuitBreaker Module" {
             } | ConvertTo-Json | Set-Content ".circuit_breaker_state"
             
             $state = Get-CircuitState
-            $state | Should -Be "HALF_OPEN"
+            $state | Should Be "HALF_OPEN"
         }
     }
     
     Context "Test-CanExecute" {
         It "should allow execution when CLOSED" {
             Initialize-CircuitBreaker
-            Test-CanExecute | Should -Be $true
+            Test-CanExecute | Should Be $true
         }
         
         It "should allow execution when HALF_OPEN" {
@@ -93,7 +81,7 @@ Describe "CircuitBreaker Module" {
                 consecutive_no_progress = 2
             } | ConvertTo-Json | Set-Content ".circuit_breaker_state"
             
-            Test-CanExecute | Should -Be $true
+            Test-CanExecute | Should Be $true
         }
         
         It "should block execution when OPEN" {
@@ -102,7 +90,7 @@ Describe "CircuitBreaker Module" {
                 consecutive_no_progress = 3
             } | ConvertTo-Json | Set-Content ".circuit_breaker_state"
             
-            Test-CanExecute | Should -Be $false
+            Test-CanExecute | Should Be $false
         }
     }
     
@@ -112,8 +100,8 @@ Describe "CircuitBreaker Module" {
             
             $result = Add-LoopResult -LoopNumber 1 -FilesChanged 5
             
-            $result | Should -Be $true
-            Get-CircuitState | Should -Be "CLOSED"
+            $result | Should Be $true
+            Get-CircuitState | Should Be "CLOSED"
         }
         
         It "should stay CLOSED after 1 no-progress loop" {
@@ -121,7 +109,7 @@ Describe "CircuitBreaker Module" {
             
             Add-LoopResult -LoopNumber 1 -FilesChanged 0
             
-            Get-CircuitState | Should -Be "CLOSED"
+            Get-CircuitState | Should Be "CLOSED"
         }
         
         It "should transition to HALF_OPEN after 2 no-progress loops" {
@@ -130,7 +118,7 @@ Describe "CircuitBreaker Module" {
             Add-LoopResult -LoopNumber 1 -FilesChanged 0
             Add-LoopResult -LoopNumber 2 -FilesChanged 0
             
-            Get-CircuitState | Should -Be "HALF_OPEN"
+            Get-CircuitState | Should Be "HALF_OPEN"
         }
         
         It "should transition to OPEN after 3 no-progress loops" {
@@ -140,7 +128,7 @@ Describe "CircuitBreaker Module" {
             Add-LoopResult -LoopNumber 2 -FilesChanged 0
             Add-LoopResult -LoopNumber 3 -FilesChanged 0
             
-            Get-CircuitState | Should -Be "OPEN"
+            Get-CircuitState | Should Be "OPEN"
         }
         
         It "should return false when circuit opens" {
@@ -150,31 +138,28 @@ Describe "CircuitBreaker Module" {
             Add-LoopResult -LoopNumber 2 -FilesChanged 0
             $result = Add-LoopResult -LoopNumber 3 -FilesChanged 0
             
-            $result | Should -Be $false
+            $result | Should Be $false
         }
         
         It "should recover from HALF_OPEN to CLOSED on progress" {
             Initialize-CircuitBreaker
             
-            # Get to HALF_OPEN
             Add-LoopResult -LoopNumber 1 -FilesChanged 0
             Add-LoopResult -LoopNumber 2 -FilesChanged 0
-            Get-CircuitState | Should -Be "HALF_OPEN"
+            Get-CircuitState | Should Be "HALF_OPEN"
             
-            # Make progress
             Add-LoopResult -LoopNumber 3 -FilesChanged 5
-            Get-CircuitState | Should -Be "CLOSED"
+            Get-CircuitState | Should Be "CLOSED"
         }
         
         It "should reset no-progress counter on progress" {
             Initialize-CircuitBreaker
             
             Add-LoopResult -LoopNumber 1 -FilesChanged 0
-            Add-LoopResult -LoopNumber 2 -FilesChanged 5  # Progress!
+            Add-LoopResult -LoopNumber 2 -FilesChanged 5
             Add-LoopResult -LoopNumber 3 -FilesChanged 0
             
-            # Should still be CLOSED because counter was reset
-            Get-CircuitState | Should -Be "CLOSED"
+            Get-CircuitState | Should Be "CLOSED"
         }
     }
     
@@ -185,7 +170,7 @@ Describe "CircuitBreaker Module" {
             Add-LoopResult -LoopNumber 1 -FilesChanged 1 -HasErrors $true
             
             $data = Get-Content ".circuit_breaker_state" -Raw | ConvertFrom-Json
-            $data.consecutive_same_error | Should -Be 1
+            $data.consecutive_same_error | Should Be 1
         }
         
         It "should reset error counter when no errors" {
@@ -195,7 +180,7 @@ Describe "CircuitBreaker Module" {
             Add-LoopResult -LoopNumber 2 -FilesChanged 1 -HasErrors $false
             
             $data = Get-Content ".circuit_breaker_state" -Raw | ConvertFrom-Json
-            $data.consecutive_same_error | Should -Be 0
+            $data.consecutive_same_error | Should Be 0
         }
     }
     
@@ -203,16 +188,14 @@ Describe "CircuitBreaker Module" {
         It "should reset state to CLOSED" {
             Initialize-CircuitBreaker
             
-            # Get to OPEN state
             Add-LoopResult -LoopNumber 1 -FilesChanged 0
             Add-LoopResult -LoopNumber 2 -FilesChanged 0
             Add-LoopResult -LoopNumber 3 -FilesChanged 0
-            Get-CircuitState | Should -Be "OPEN"
+            Get-CircuitState | Should Be "OPEN"
             
-            # Reset
             Reset-CircuitBreaker -Reason "Test reset"
             
-            Get-CircuitState | Should -Be "CLOSED"
+            Get-CircuitState | Should Be "CLOSED"
         }
         
         It "should reset all counters" {
@@ -224,8 +207,8 @@ Describe "CircuitBreaker Module" {
             Reset-CircuitBreaker
             
             $data = Get-Content ".circuit_breaker_state" -Raw | ConvertFrom-Json
-            $data.consecutive_no_progress | Should -Be 0
-            $data.consecutive_same_error | Should -Be 0
+            $data.consecutive_no_progress | Should Be 0
+            $data.consecutive_same_error | Should Be 0
         }
         
         It "should store reset reason" {
@@ -234,7 +217,7 @@ Describe "CircuitBreaker Module" {
             Reset-CircuitBreaker -Reason "Manual test reset"
             
             $data = Get-Content ".circuit_breaker_state" -Raw | ConvertFrom-Json
-            $data.reason | Should -Be "Manual test reset"
+            $data.reason | Should Be "Manual test reset"
         }
     }
     
@@ -243,11 +226,11 @@ Describe "CircuitBreaker Module" {
             Initialize-CircuitBreaker
             
             Add-LoopResult -LoopNumber 1 -FilesChanged 0
-            Add-LoopResult -LoopNumber 2 -FilesChanged 0  # Transition to HALF_OPEN
+            Add-LoopResult -LoopNumber 2 -FilesChanged 0
             
             $history = Get-Content ".circuit_breaker_history" -Raw | ConvertFrom-Json
-            $history.Count | Should -BeGreaterThan 0
-            $history[-1].to_state | Should -Be "HALF_OPEN"
+            $history.Count | Should BeGreaterThan 0
+            $history[-1].to_state | Should Be "HALF_OPEN"
         }
         
         It "should include loop number in history" {
@@ -257,14 +240,14 @@ Describe "CircuitBreaker Module" {
             Add-LoopResult -LoopNumber 2 -FilesChanged 0
             
             $history = Get-Content ".circuit_breaker_history" -Raw | ConvertFrom-Json
-            $history[-1].loop | Should -Be 2
+            $history[-1].loop | Should Be 2
         }
     }
     
     Context "Test-ShouldHalt" {
         It "should return false when CLOSED" {
             Initialize-CircuitBreaker
-            Test-ShouldHalt | Should -Be $false
+            Test-ShouldHalt | Should Be $false
         }
         
         It "should return false when HALF_OPEN" {
@@ -274,7 +257,7 @@ Describe "CircuitBreaker Module" {
                 reason = "Monitoring"
             } | ConvertTo-Json | Set-Content ".circuit_breaker_state"
             
-            Test-ShouldHalt | Should -Be $false
+            Test-ShouldHalt | Should Be $false
         }
         
         It "should return true when OPEN" {
@@ -287,7 +270,7 @@ Describe "CircuitBreaker Module" {
                 total_opens = 1
             } | ConvertTo-Json | Set-Content ".circuit_breaker_state"
             
-            Test-ShouldHalt | Should -Be $true
+            Test-ShouldHalt | Should Be $true
         }
     }
 }

@@ -1,89 +1,124 @@
-#Requires -Modules Pester
+<#
+.SYNOPSIS
+    Unit tests for GitBranchManager.ps1 module
+#>
 
-BeforeAll {
-    . "$PSScriptRoot\..\..\lib\GitBranchManager.ps1"
-}
+$here = Split-Path -Parent $MyInvocation.MyCommand.Path
+$lib = Join-Path (Split-Path -Parent (Split-Path -Parent $here)) "lib"
+. "$lib\GitBranchManager.ps1"
 
 Describe "GitBranchManager Module" {
     Context "Get-FeatureBranchName" {
         It "Creates correct branch name" {
             $name = Get-FeatureBranchName -FeatureId "F001" -FeatureName "User Registration"
-            $name | Should -Be "feature/F001-user-registration"
+            $name | Should Be "feature/F001-user-registration"
         }
         
         It "Sanitizes special characters" {
             $name = Get-FeatureBranchName -FeatureId "F002" -FeatureName "Email & Password Reset"
-            $name | Should -Match "^feature/F002-"
-            $name | Should -Not -Match "&"
+            $name | Should Match "^feature/F002-"
+            $name | Should Not Match "&"
         }
         
         It "Truncates long names" {
             $longName = "This is a very long feature name that exceeds thirty characters"
             $name = Get-FeatureBranchName -FeatureId "F003" -FeatureName $longName
-            $name.Length | Should -BeLessOrEqual 50
+            $name.Length | Should BeLessOrEqual 50
         }
         
         It "Handles unicode characters" {
             $name = Get-FeatureBranchName -FeatureId "F004" -FeatureName "User Kayit Formu"
-            $name | Should -Match "^feature/F004-"
+            $name | Should Match "^feature/F004-"
         }
     }
     
     Context "Get-MainBranch" {
         It "Returns main or master" {
             $main = Get-MainBranch
-            $main | Should -BeIn @("main", "master")
+            @("main", "master") | Should Contain $main
         }
     }
     
-    Context "Test-GitRepository" -Skip:(-not (Test-Path ".git")) {
+    Context "Test-GitRepository" {
         It "Returns true in git repository" {
-            Test-GitRepository | Should -Be $true
+            if (Test-Path ".git") {
+                Test-GitRepository | Should Be $true
+            } else {
+                Set-TestInconclusive "Not in a git repository"
+            }
         }
     }
     
-    Context "Get-CurrentBranch" -Skip:(-not (Test-Path ".git")) {
+    Context "Get-CurrentBranch" {
         It "Returns branch name" {
-            $branch = Get-CurrentBranch
-            $branch | Should -Not -BeNullOrEmpty
+            if (Test-Path ".git") {
+                $branch = Get-CurrentBranch
+                $branch | Should Not BeNullOrEmpty
+            } else {
+                Set-TestInconclusive "Not in a git repository"
+            }
         }
     }
     
-    Context "Test-WorkingTreeClean" -Skip:(-not (Test-Path ".git")) {
+    Context "Test-WorkingTreeClean" {
         It "Returns boolean" {
-            $clean = Test-WorkingTreeClean
-            $clean | Should -BeIn @($true, $false)
+            if (Test-Path ".git") {
+                $clean = Test-WorkingTreeClean
+                @($true, $false) | Should Contain $clean
+            } else {
+                Set-TestInconclusive "Not in a git repository"
+            }
         }
     }
     
-    Context "Test-StagedChanges" -Skip:(-not (Test-Path ".git")) {
+    Context "Test-StagedChanges" {
         It "Returns boolean" {
-            $staged = Test-StagedChanges
-            $staged | Should -BeIn @($true, $false)
+            if (Test-Path ".git") {
+                $staged = Test-StagedChanges
+                @($true, $false) | Should Contain $staged
+            } else {
+                Set-TestInconclusive "Not in a git repository"
+            }
         }
     }
     
-    Context "Get-CommitsSinceMain" -Skip:(-not (Test-Path ".git")) {
+    Context "Get-CommitsSinceMain" {
         It "Returns integer" {
-            $count = Get-CommitsSinceMain
-            $count | Should -BeOfType [int]
+            if (Test-Path ".git") {
+                $count = Get-CommitsSinceMain
+                $count.GetType().Name | Should Be "Int32"
+            } else {
+                Set-TestInconclusive "Not in a git repository"
+            }
         }
     }
     
-    Context "Test-BranchExists" -Skip:(-not (Test-Path ".git")) {
+    Context "Test-BranchExists" {
         It "Returns true for current branch" {
-            $current = Get-CurrentBranch
-            Test-BranchExists -Name $current | Should -Be $true
+            if (Test-Path ".git") {
+                $current = Get-CurrentBranch
+                Test-BranchExists -Name $current | Should Be $true
+            } else {
+                Set-TestInconclusive "Not in a git repository"
+            }
         }
         
         It "Returns false for nonexistent branch" {
-            Test-BranchExists -Name "nonexistent-branch-xyz" | Should -Be $false
+            if (Test-Path ".git") {
+                Test-BranchExists -Name "nonexistent-branch-xyz" | Should Be $false
+            } else {
+                Set-TestInconclusive "Not in a git repository"
+            }
         }
     }
     
-    Context "Test-MergeInProgress" -Skip:(-not (Test-Path ".git")) {
+    Context "Test-MergeInProgress" {
         It "Returns false when no merge in progress" {
-            Test-MergeInProgress | Should -Be $false
+            if (Test-Path ".git") {
+                Test-MergeInProgress | Should Be $false
+            } else {
+                Set-TestInconclusive "Not in a git repository"
+            }
         }
     }
 }

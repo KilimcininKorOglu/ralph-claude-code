@@ -92,7 +92,7 @@ function New-HermesProject {
     param([string]$Name)
     
     Write-Host ""
-    Write-Host "Setting up Hermes project: $Name" -ForegroundColor Cyan
+    Write-Host "Hermes Autonomous Agent - Setting up project: $Name" -ForegroundColor Cyan
     Write-Host ""
     
     # Find templates
@@ -294,7 +294,7 @@ hermes -TaskStatus                              # Show task progress
 hermes -TaskMode -Autonomous                    # Run without pausing
 ``````
 
-## Created with Hermes for Claude Code
+## Created with Hermes Autonomous Agent
 
 [Hermes](https://github.com/frankbria/hermes-claude-code) - Autonomous AI development loop
 "@

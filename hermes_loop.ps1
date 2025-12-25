@@ -172,7 +172,7 @@ function Show-Help {
     #>
     
     Write-Host ""
-    Write-Host "Hermes Loop - Autonomous AI Development" -ForegroundColor Cyan
+    Write-Host "Hermes Autonomous Agent" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "IMPORTANT: This command must be run from a Hermes project directory." -ForegroundColor Yellow
     Write-Host "           Use 'hermes-setup project-name' to create a new project first."

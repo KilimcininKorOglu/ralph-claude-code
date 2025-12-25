@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Hermes PRD Parser - Convert PRD to task-plan format
+    Hermes Autonomous Agent - PRD Parser - Convert PRD to task-plan format
 .DESCRIPTION
     Reads a PRD file and uses AI to generate task files in task-plan format
 .EXAMPLE
@@ -230,7 +230,7 @@ function Write-IncrementalSummary {
 
 function Show-Usage {
     Write-Host ""
-    Write-Host "Hermes PRD Parser" -ForegroundColor Cyan
+    Write-Host "Hermes Autonomous Agent - PRD Parser" -ForegroundColor Cyan
     Write-Host "================" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "Usage:" -ForegroundColor Yellow
@@ -386,7 +386,7 @@ if (-not (Test-Path $promptTemplatePath)) {
 }
 
 Write-Host ""
-Write-Host "Hermes PRD Parser" -ForegroundColor Cyan
+Write-Host "Hermes Autonomous Agent - PRD Parser" -ForegroundColor Cyan
 Write-Host "================" -ForegroundColor Cyan
 Write-Host ""
 
