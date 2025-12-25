@@ -63,6 +63,7 @@ ralph -Monitor
 | `ralph-setup <name>` | Create new project |
 | `ralph-import <file>` | Convert PRD to project |
 | `ralph-prd <file>` | Parse PRD to task-plan format |
+| `ralph-add <feature>` | Add single feature to task plan |
 | `ralph-monitor` | Standalone monitor |
 
 ### Ralph Loop Options
@@ -194,6 +195,71 @@ Summary:
   Estimated: 12 days
 
 Next: Run 'ralph -TaskMode -AutoBranch -AutoCommit' to start
+```
+
+## Feature Add
+
+Add a single feature to your task plan without a full PRD:
+
+```powershell
+# Inline description
+ralph-add "kullanici kayit sistemi"
+
+# From file
+ralph-add @docs/webhook-spec.md
+
+# With priority override
+ralph-add "email dogrulama" -Priority P1
+
+# Preview without creating
+ralph-add "sifre sifirlama" -DryRun
+```
+
+### Feature Add Options
+
+```powershell
+ralph-add <feature> [-AI <provider>] [-DryRun] [-Priority <P1-P4>]
+                    [-OutputDir <dir>] [-Timeout <seconds>]
+
+<feature>         Feature description or @filepath
+-AI <provider>    AI provider: claude, droid, aider, auto (default: auto)
+-DryRun           Preview without creating files
+-Priority         Override priority: P1, P2, P3, P4
+-OutputDir        Output directory (default: tasks)
+-Timeout          AI timeout in seconds (default: 300)
+```
+
+### How Feature Add Works
+
+1. Reads feature description (inline or from file)
+2. Finds highest existing Feature ID and Task ID
+3. Sends to AI for task breakdown analysis
+4. Creates feature file continuing from existing IDs
+
+### Example Output
+
+```
+[INFO] Reading feature input...
+[INFO] Source: inline description
+[INFO] Next Feature ID: F003
+[INFO] Next Task ID: T012
+[INFO] Using AI: claude
+[INFO] Analyzing feature with claude...
+
+==================================================
+  Feature added!
+==================================================
+
+  Feature ID: F003
+  File:       tasks/003-email-dogrulama.md
+  Name:       Email Dogrulama
+  Priority:   P2 - High
+  Tasks:      4 (T012-T015)
+  Effort:     3 days (total)
+
+==================================================
+
+Next: Run 'ralph -TaskMode -AutoBranch -AutoCommit' to implement
 ```
 
 ## Task Mode
@@ -367,7 +433,9 @@ Install-Module -Name Pester -Force -SkipPublisherCheck
 | `setup.ps1` | Project creation |
 | `ralph_import.ps1` | PRD conversion |
 | `ralph-prd.ps1` | PRD to task-plan parser |
+| `ralph-add.ps1` | Single feature addition |
 | `lib\AIProvider.ps1` | AI CLI abstraction |
+| `lib\FeatureAnalyzer.ps1` | Feature analysis module |
 | `lib\CircuitBreaker.ps1` | Stagnation detection |
 | `lib\ResponseAnalyzer.ps1` | Response analysis |
 | `lib\TaskReader.ps1` | Task file parsing |
