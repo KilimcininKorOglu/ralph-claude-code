@@ -105,6 +105,11 @@ function Invoke-ResponseAnalysis {
         files_modified = 0
         output_length = 0
         error_count = 0
+        # Task mode fields
+        task_completed = $false
+        completed_task_id = ""
+        task_blocked = $false
+        blocked_reason = ""
     }
     
     # Check if output file exists
@@ -143,6 +148,37 @@ function Invoke-ResponseAnalysis {
         # Extract RECOMMENDATION
         if ($outputContent -match "RECOMMENDATION:\s*(.+?)(?:\r?\n|---END)") {
             $analysis.work_summary = $Matches[1].Trim()
+        }
+        
+        # Extract TASK_ID for task mode
+        if ($outputContent -match "TASK_ID:\s*(T\d+)") {
+            $analysis.completed_task_id = $Matches[1]
+            
+            # If STATUS is COMPLETE and we have TASK_ID, mark task as completed
+            if ($outputContent -match "STATUS:\s*COMPLETE") {
+                $analysis.task_completed = $true
+            }
+        }
+        
+        # Check for blocked task
+        if ($outputContent -match "STATUS:\s*BLOCKED") {
+            $analysis.task_blocked = $true
+            if ($outputContent -match "BLOCKED_REASON:\s*(.+?)(?:\r?\n|---END)") {
+                $analysis.blocked_reason = $Matches[1].Trim()
+            }
+        }
+    }
+    
+    # 1b. Additional task completion detection (fallback patterns)
+    if (-not $analysis.task_completed) {
+        # Pattern: "Task TXXX completed" or "TXXX is done"
+        if ($outputContent -match "(?i)Task\s+(T\d+)\s+(?:completed|done|finished)") {
+            $analysis.completed_task_id = $Matches[1]
+            $analysis.task_completed = $true
+        }
+        elseif ($outputContent -match "(?i)(T\d+)\s+is\s+(?:complete|done|finished)") {
+            $analysis.completed_task_id = $Matches[1]
+            $analysis.task_completed = $true
         }
     }
     
@@ -405,6 +441,19 @@ function Write-AnalysisSummary {
     Write-Host "Error Count:      $($analysis.error_count)" -ForegroundColor White
     Write-Host "Output Length:    $($analysis.output_length) bytes" -ForegroundColor White
     Write-Host "Summary:          $($analysis.work_summary)" -ForegroundColor White
+    
+    # Task mode info
+    if ($analysis.completed_task_id) {
+        $taskColor = if ($analysis.task_completed) { "Green" } else { "Yellow" }
+        Write-Host ("=" * 60) -ForegroundColor Cyan
+        Write-Host "Task ID:          $($analysis.completed_task_id)" -ForegroundColor $taskColor
+        Write-Host "Task Completed:   $($analysis.task_completed)" -ForegroundColor $taskColor
+        if ($analysis.task_blocked) {
+            Write-Host "Task Blocked:     $($analysis.task_blocked)" -ForegroundColor Red
+            Write-Host "Blocked Reason:   $($analysis.blocked_reason)" -ForegroundColor Red
+        }
+    }
+    
     Write-Host ("=" * 60) -ForegroundColor Cyan
     Write-Host ""
 }
