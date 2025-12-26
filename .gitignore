@@ -1,6 +1,9 @@
 # Test/sample projects
 sample-project/
 
+# Build output
+bin/
+
 # Go binaries
 hermes
 hermes.exe
