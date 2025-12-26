@@ -1,12 +1,26 @@
 package tui
 
 import (
+	"time"
+
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"hermes/internal/circuit"
 	"hermes/internal/config"
 	"hermes/internal/task"
 )
+
+// tickMsg is sent on each tick for auto-refresh
+type tickMsg time.Time
+
+// Auto-refresh interval
+const refreshInterval = 2 * time.Second
+
+func tickCmd() tea.Cmd {
+	return tea.Tick(refreshInterval, func(t time.Time) tea.Msg {
+		return tickMsg(t)
+	})
+}
 
 // Screen represents the current screen
 type Screen int
@@ -28,6 +42,8 @@ type App struct {
 	config     *config.Config
 	taskReader *task.Reader
 	breaker    *circuit.Breaker
+	running    bool // Is run loop active?
+	runStatus  string
 
 	// Sub-models
 	dashboard *DashboardModel
@@ -57,12 +73,19 @@ func (a App) Init() tea.Cmd {
 	return tea.Batch(
 		tea.EnterAltScreen,
 		a.dashboard.Init(),
+		tickCmd(), // Start auto-refresh
 	)
 }
 
 // Update handles messages
 func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tickMsg:
+		// Auto-refresh data
+		a.dashboard.Refresh()
+		a.tasks.Refresh()
+		return a, tickCmd() // Schedule next tick
+
 	case tea.WindowSizeMsg:
 		a.width = msg.Width
 		a.height = msg.Height
@@ -82,8 +105,14 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			a.screen = ScreenLogs
 		case "?":
 			a.screen = ScreenHelp
+		case "R":
+			// Start run (capital R)
+			if !a.running {
+				a.running = true
+				a.runStatus = "Starting..."
+			}
 		case "r":
-			// Refresh data
+			// Manual refresh
 			a.dashboard.Refresh()
 			a.tasks.Refresh()
 		}
@@ -148,7 +177,10 @@ func (a App) footerView() string {
 		Foreground(lipgloss.Color("241")).
 		Width(a.width)
 
-	help := "[1]Dashboard [2]Tasks [3]Logs [?]Help [r]Refresh [q]Quit"
+	help := "[1]Dashboard [2]Tasks [3]Logs [?]Help [r]Refresh [R]Run [q]Quit"
+	if a.running {
+		help = "[RUNNING] " + a.runStatus + " | [q]Stop"
+	}
 	return style.Render(help)
 }
 
@@ -166,19 +198,17 @@ Navigation:
   ?         This help screen
 
 Actions:
-  r         Refresh data
-  Enter     Select item (in lists)
+  R         Start task execution (Shift+R)
+  r         Manual refresh
   j/k       Move up/down (in lists)
-  q         Quit
+  q         Quit / Stop running
 
 Dashboard:
   Shows progress, circuit breaker status, and current task
+  Auto-refreshes every 2 seconds
 
 Tasks:
-  Browse and filter tasks by status
-
-Logs:
-  View real-time execution logs
+  a/c/p/n/b  Filter: All/Completed/InProgress/NotStarted/Blocked
 
 Press any key to return...
 `
