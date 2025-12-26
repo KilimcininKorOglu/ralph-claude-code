@@ -33,6 +33,7 @@ type Screen int
 const (
 	ScreenDashboard Screen = iota
 	ScreenTasks
+	ScreenTaskDetail
 	ScreenLogs
 	ScreenHelp
 )
@@ -60,8 +61,10 @@ type App struct {
 	loopCount  int
 
 	// Sub-models
-	dashboard *DashboardModel
-	tasks     *TasksModel
+	dashboard  *DashboardModel
+	tasks      *TasksModel
+	taskDetail *TaskDetailModel
+	logs       *LogsModel
 }
 
 // NewApp creates a new TUI application
@@ -79,6 +82,8 @@ func NewApp(basePath string) (*App, error) {
 		breaker:    circuit.New(basePath),
 		dashboard:  NewDashboardModel(basePath),
 		tasks:      NewTasksModel(basePath),
+		taskDetail: NewTaskDetailModel(basePath),
+		logs:       NewLogsModel(basePath),
 	}, nil
 }
 
@@ -106,6 +111,8 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		a.ready = true
 		a.dashboard.SetSize(msg.Width, msg.Height-4)
 		a.tasks.SetSize(msg.Width, msg.Height-4)
+		a.taskDetail.SetSize(msg.Width, msg.Height-4)
+		a.logs.SetSize(msg.Width, msg.Height-4)
 
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -119,10 +126,25 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			a.screen = ScreenLogs
 		case "?":
 			a.screen = ScreenHelp
+		case "enter":
+			// Open task detail from tasks screen
+			if a.screen == ScreenTasks {
+				tasks := a.tasks.filteredTasks()
+				if len(tasks) > 0 && a.tasks.cursor < len(tasks) {
+					a.taskDetail.SetTask(&tasks[a.tasks.cursor])
+					a.screen = ScreenTaskDetail
+				}
+			}
+		case "esc":
+			// Back from detail screens
+			if a.screen == ScreenTaskDetail {
+				a.screen = ScreenTasks
+			}
 		case "R":
 			// Manual refresh (Shift+R)
 			a.dashboard.Refresh()
 			a.tasks.Refresh()
+			a.logs.Refresh()
 		case "r":
 			// Start run
 			if !a.running {
@@ -163,6 +185,14 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		var model tea.Model
 		model, cmd = a.tasks.Update(msg)
 		a.tasks = model.(*TasksModel)
+	case ScreenTaskDetail:
+		var model tea.Model
+		model, cmd = a.taskDetail.Update(msg)
+		a.taskDetail = model.(*TaskDetailModel)
+	case ScreenLogs:
+		var model tea.Model
+		model, cmd = a.logs.Update(msg)
+		a.logs = model.(*LogsModel)
 	}
 
 	return a, cmd
@@ -180,8 +210,10 @@ func (a App) View() string {
 		content = a.dashboard.View()
 	case ScreenTasks:
 		content = a.tasks.View()
+	case ScreenTaskDetail:
+		content = a.taskDetail.View()
 	case ScreenLogs:
-		content = a.logsView()
+		content = a.logs.View()
 	case ScreenHelp:
 		content = a.helpView()
 	}
@@ -226,35 +258,35 @@ func (a App) helpView() string {
 HERMES TUI HELP
 
 Navigation:
-  1         Dashboard screen
-  2         Tasks screen
-  3         Logs screen
-  ?         This help screen
+  1           Dashboard screen
+  2           Tasks screen
+  3           Logs screen
+  ?           This help screen
+  Esc         Back to previous screen
 
 Actions:
-  r         Start task execution
-  s         Stop execution
-  R         Manual refresh (Shift+R)
-  j/k       Move up/down (in lists)
-  q         Quit
+  r           Start task execution
+  s           Stop execution
+  R           Manual refresh (Shift+R)
+  Enter       Open task detail (from Tasks)
+  j/k         Move up/down
+  q           Quit
 
 Dashboard:
   Shows progress, circuit breaker status, and current task
   Auto-refreshes every 2 seconds
 
 Tasks:
-  a/c/p/n/b  Filter: All/Completed/InProgress/NotStarted/Blocked
+  a/c/p/n/b   Filter: All/Completed/InProgress/NotStarted/Blocked
+  Enter       View task details
+
+Logs:
+  g/G         Go to top/bottom
+  f           Toggle auto-scroll
 
 Press any key to return...
 `
 	return style.Render(help)
-}
-
-func (a App) logsView() string {
-	style := lipgloss.NewStyle().
-		Padding(1, 2)
-
-	return style.Render("Logs viewer - Coming soon\n\nPress 1-4 to switch screens")
 }
 
 // startRun starts executing the next task
