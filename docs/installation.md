@@ -10,11 +10,15 @@
 
 ### Supported AI CLIs
 
-| CLI    | Installation Command                    |
-|--------|-----------------------------------------|
-| Claude | `npm install -g @anthropic-ai/claude-code` |
-| Droid  | Available via Factory                   |
-| Aider  | `pip install aider-chat`                |
+| CLI    | Installation Command                       | Used For           |
+|--------|--------------------------------------------|--------------------|
+| Claude | `npm install -g @anthropic-ai/claude-code` | Planning (default) |
+| Droid  | Available via Factory                      | Coding (default)   |
+| Aider  | `pip install aider-chat`                   | Alternative        |
+
+**Note:** Hermes uses task-based AI selection by default:
+- **Planning tasks** (PRD parsing, feature addition): `claude`
+- **Coding tasks** (task execution): `droid`
 
 ---
 
@@ -214,17 +218,41 @@ hermes-setup my-project
 cd my-project
 ```
 
+This creates a project structure:
+
+```
+my-project/
+├── .gitignore          # Contains ".hermes/"
+├── .hermes/            # All Hermes files (gitignored)
+│   ├── config.json     # Project configuration
+│   ├── PROMPT.md       # AI prompt file
+│   ├── tasks/          # Task files
+│   ├── logs/           # Execution logs
+│   └── docs/           # PRD and documentation
+└── README.md
+```
+
 ### Parse a PRD
 
 ```powershell
-hermes-prd docs/PRD.md -DryRun
-hermes-prd docs/PRD.md
+# Copy your PRD file to .hermes/docs/
+copy your-prd.md .hermes/docs/PRD.md
+
+# Preview
+hermes-prd .hermes/docs/PRD.md -DryRun
+
+# Create tasks
+hermes-prd .hermes/docs/PRD.md
 ```
 
 ### Start Task Mode
 
 ```powershell
+# Basic run
 hermes -TaskMode -AutoBranch -AutoCommit
+
+# Fully autonomous (no pauses)
+hermes -TaskMode -AutoBranch -AutoCommit -Autonomous
 ```
 
 ---
@@ -240,3 +268,8 @@ git pull origin main
 ---
 
 **Next:** See [USER-GUIDE.md](./USER-GUIDE.md) for complete usage documentation.
+
+---
+
+**Version:** 1.1  
+**Last Updated:** 2025-12-26
