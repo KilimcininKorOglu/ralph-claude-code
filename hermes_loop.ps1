@@ -691,7 +691,7 @@ function Start-HermesLoop {
         Write-Host ""
         Write-Host "To fix this:" -ForegroundColor Cyan
         Write-Host "  1. Create a new project: hermes-setup my-project"
-        Write-Host "  2. Import existing requirements: hermes-import requirements.md"
+        Write-Host "  2. Create PRD and parse it: hermes-prd .hermes/docs/PRD.md"
         Write-Host "  3. Navigate to an existing Hermes project directory"
         Write-Host "  4. Or create .hermes/PROMPT.md manually"
         Write-Host ""

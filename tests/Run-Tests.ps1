@@ -81,7 +81,8 @@ if ($Coverage) {
         (Join-Path $projectRoot "hermes_loop.ps1"),
         (Join-Path $projectRoot "hermes_monitor.ps1"),
         (Join-Path $projectRoot "setup.ps1"),
-        (Join-Path $projectRoot "hermes_import.ps1")
+        (Join-Path $projectRoot "hermes-prd.ps1"),
+        (Join-Path $projectRoot "hermes-add.ps1")
     )
     $config.CodeCoverage.OutputPath = Join-Path $scriptRoot "coverage.xml"
     $config.CodeCoverage.OutputFormat = "JaCoCo"

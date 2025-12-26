@@ -85,11 +85,6 @@ Describe "Setup Script Integration" {
         It "should derive project name from filename" {
             . "$script:ProjectRoot\setup.ps1" -Help 2>$null
             
-            if (Get-Command Get-ProjectNameFromFile -ErrorAction SilentlyContinue) {
-                # From hermes_import.ps1
-                . "$script:ProjectRoot\hermes_import.ps1" -Help 2>$null
-            }
-            
             # Test is informational - function may not be exposed
         }
     }

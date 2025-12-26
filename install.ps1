@@ -5,7 +5,7 @@
     Hermes Autonomous Agent - Windows Installation Script
 .DESCRIPTION
     Installs Hermes globally on Windows systems.
-    Creates commands: Hermes, hermes-monitor, hermes-setup, hermes-import
+    Creates commands: Hermes, hermes-monitor, hermes-setup, hermes-prd, hermes-add
 .PARAMETER Uninstall
     Remove Hermes installation
 .PARAMETER Help
@@ -152,7 +152,6 @@ function Install-Scripts {
         "hermes_loop.ps1",
         "hermes_monitor.ps1",
         "setup.ps1",
-        "hermes_import.ps1",
         "hermes-prd.ps1",
         "hermes-add.ps1"
     )
@@ -214,12 +213,6 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File "%LOCALAPPDATA%\Hermes\setup.ps1" 
 "@
     $setupCmd | Set-Content (Join-Path $script:BinDir "hermes-setup.cmd") -Encoding ASCII
     
-    # hermes-import.cmd
-    $importCmd = @"
-@echo off
-pwsh -NoProfile -ExecutionPolicy Bypass -File "%LOCALAPPDATA%\Hermes\hermes_import.ps1" %*
-"@
-    $importCmd | Set-Content (Join-Path $script:BinDir "hermes-import.cmd") -Encoding ASCII
     
     # PowerShell wrappers (.ps1) for PowerShell users
     
@@ -249,15 +242,6 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File "%LOCALAPPDATA%\Hermes\hermes_impo
 & (Join-Path `$HermesHome "setup.ps1") @args
 "@
     $setupPs1 | Set-Content (Join-Path $script:BinDir "hermes-setup.ps1") -Encoding UTF8
-    
-    # hermes-import.ps1
-    $importPs1 = @"
-#Requires -Version 7.0
-# Hermes Import - PowerShell Wrapper
-`$HermesHome = Join-Path `$env:LOCALAPPDATA "Hermes"
-& (Join-Path `$HermesHome "hermes_import.ps1") @args
-"@
-    $importPs1 | Set-Content (Join-Path $script:BinDir "hermes-import.ps1") -Encoding UTF8
     
     # hermes-prd.cmd
     $prdCmd = @"
