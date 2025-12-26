@@ -10,11 +10,10 @@
 
 ### Supported AI CLIs
 
-| CLI    | Installation Command                       | Used For           |
-|--------|--------------------------------------------|--------------------|
-| Claude | `npm install -g @anthropic-ai/claude-code` | Planning (default) |
-| Droid  | Available via Factory                      | Coding (default)   |
-| Aider  | `pip install aider-chat`                   | Alternative        |
+| CLI    | Installation Command                         | Used For           |
+|--------|----------------------------------------------|--------------------|
+| Claude | `npm install -g @anthropic-ai/claude-code`   | Planning (default) |
+| Droid  | `curl -fsSL https://app.factory.ai/cli \| sh` | Coding (default)   |
 
 **Note:** Hermes uses task-based AI selection by default:
 - **Planning tasks** (PRD parsing, feature addition): `claude`
@@ -95,11 +94,11 @@ npm install -g @anthropic-ai/claude-code
 claude --version
 ```
 
-**Aider:**
+**Droid:**
 
 ```powershell
-pip install aider-chat
-aider --version
+curl -fsSL https://app.factory.ai/cli | sh
+droid --version
 ```
 
 ### 4. Install Hermes
@@ -177,7 +176,7 @@ Restart terminal or manually add to PATH:
 $env:PATH = "$env:LOCALAPPDATA\Hermes\bin;$env:PATH"
 ```
 
-### "claude/droid/aider is not recognized"
+### "claude/droid is not recognized"
 
 Ensure at least one AI CLI is installed:
 

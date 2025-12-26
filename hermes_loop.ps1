@@ -86,7 +86,7 @@ param(
     [int]$MaxConsecutiveErrors = 5,
     
     # AI Provider selection
-    [ValidateSet("claude", "droid", "aider", "auto")]
+    [ValidateSet("claude", "droid", "auto")]
     [string]$AI = "auto"
 )
 
@@ -113,7 +113,7 @@ $script:ResolvedAIProvider = Get-AIForTask -TaskType "coding" -Override $(if ($A
 
 # Validate AI provider
 if (-not $script:ResolvedAIProvider) {
-    Write-Host "[ERROR] No AI provider found. Install claude, droid, or aider." -ForegroundColor Red
+    Write-Host "[ERROR] No AI provider found. Install claude or droid." -ForegroundColor Red
     exit 1
 }
 
@@ -181,7 +181,7 @@ function Show-Help {
     Write-Host ""
     Write-Host "Options:" -ForegroundColor Yellow
     Write-Host "    -h, -Help              Show this help message"
-    Write-Host "    -AI PROVIDER           AI provider: claude, droid, aider, auto (default: auto)"
+    Write-Host "    -AI PROVIDER           AI provider: claude, droid, auto (default: auto)"
     Write-Host "    -c, -Calls NUM         Set max calls per hour (default: 100)"
     Write-Host "    -p, -Prompt FILE       Set prompt file (default: .hermes/PROMPT.md)"
     Write-Host "    -s, -Status            Show current status and exit"

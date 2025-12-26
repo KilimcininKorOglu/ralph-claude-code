@@ -111,7 +111,7 @@ Describe "AIProvider Module" {
             # Result could be null if no providers installed
             # In CI, we expect at least one to be available
             if ($result) {
-                $result | Should Match "^(claude|droid|aider)$"
+                $result | Should Match "^(claude|droid)$"
             }
         }
     }

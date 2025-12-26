@@ -14,7 +14,7 @@ param(
     [Parameter(Position = 0)]
     [string]$Feature,
     
-    [ValidateSet("claude", "droid", "aider", "auto")]
+    [ValidateSet("claude", "droid", "auto")]
     [string]$AI = "auto",
     
     [switch]$DryRun,
@@ -60,7 +60,7 @@ function Show-Usage {
     Write-Host ""
     Write-Host "Parameters:" -ForegroundColor Yellow
     Write-Host "  <feature>      Feature description or @filepath"
-    Write-Host "  -AI            AI provider: claude, droid, aider, auto (default: auto)"
+    Write-Host "  -AI            AI provider: claude, droid, auto (default: auto)"
     Write-Host "  -DryRun        Show what would be created without writing"
     Write-Host "  -OutputDir     Output directory (default: tasks)"
     Write-Host "  -Timeout       AI timeout in seconds (default: 300)"
@@ -114,7 +114,7 @@ Write-Host "[INFO] Next Task ID: T$($ids.NextTaskIdPadded)" -ForegroundColor Gra
 # Determine AI provider for planning tasks (CLI > config > auto-detect)
 $AI = Get-AIForTask -TaskType "planning" -Override $(if ($AI -ne "auto") { $AI } else { $null })
 if (-not $AI) {
-    Write-Error "No AI provider found. Install claude, droid, or aider."
+    Write-Error "No AI provider found. Install claude or droid."
     exit 1
 }
 

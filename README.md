@@ -1,6 +1,6 @@
 # Hermes for Claude Code
 
-Autonomous AI development loop system for Windows PowerShell. Supports multiple AI CLIs (Claude, Droid, Aider) with task-driven development, automatic branching, and intelligent resume.
+Autonomous AI development loop system for Windows PowerShell. Supports Claude and Droid CLIs with task-driven development, automatic branching, and intelligent resume.
 
 ## Documentation
 
@@ -15,7 +15,7 @@ Autonomous AI development loop system for Windows PowerShell. Supports multiple 
 
 ### AI Integration
 
-- **Multi-AI CLI Support** - Works with Claude, Droid, and Aider CLIs
+- **Multi-AI CLI Support** - Works with Claude and Droid CLIs
 - **Task-Based AI Selection** - Uses different AI for different tasks (planning=claude, coding=droid)
 - **Auto-Detection** - Automatically finds available AI CLI if not configured
 - **Provider Selection** - Override with `-AI` flag for all commands
@@ -57,7 +57,7 @@ Autonomous AI development loop system for Windows PowerShell. Supports multiple 
 
 - **PowerShell 7+** (not Windows PowerShell 5.1)
 - **Git**
-- **One of:** Claude CLI, Droid CLI, or Aider
+- **One of:** Claude CLI or Droid CLI
 
 ## Quick Start
 
@@ -98,11 +98,10 @@ hermes -TaskMode -AutoBranch -AutoCommit -Autonomous
 
 Hermes uses **task-based AI selection** by default:
 
-| Provider | Command  | Default For | Description        |
-|----------|----------|-------------|--------------------|
+| Provider | Command  | Default For | Description           |
+|----------|----------|-------------|-----------------------|
 | Claude   | `claude` | Planning    | PRD parsing, features |
-| Droid    | `droid`  | Coding      | Task execution     |
-| Aider    | `aider`  | -           | Alternative option |
+| Droid    | `droid`  | Coding      | Task execution        |
 
 Configure in `.hermes/config.json`:
 

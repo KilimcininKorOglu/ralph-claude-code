@@ -3,7 +3,7 @@
     AI CLI Provider abstraction for hermes-prd
 .DESCRIPTION
     Provides unified interface for calling different AI CLI tools
-    Supports: claude, droid, aider
+    Supports: claude, droid
 #>
 
 # Helper function to write to both console and log
@@ -82,139 +82,157 @@ function Read-AIStreamOutput {
     
     Write-Host ""  # New line before output
     
-    while (-not $Process.HasExited -or $reader.Peek() -ge 0) {
-        # Check timeout
-        if ($elapsed -gt $timeoutMs) {
-            Write-Host "`n[TIMEOUT] Process exceeded $TimeoutSeconds seconds" -ForegroundColor $script:StreamColors.Error
-            return @{ Success = $false; Output = $fullOutput; Result = $resultText; Error = "Timeout" }
-        }
-        
-        # Check for Ctrl+C
-        if ([Console]::KeyAvailable) {
-            $key = [Console]::ReadKey($true)
-            if ($key.Key -eq 'C' -and $key.Modifiers -eq 'Control') {
-                Write-Host "`n[CANCELLED] Stopped by user" -ForegroundColor $script:StreamColors.Error
-                return @{ Success = $false; Output = $fullOutput; Result = $resultText; Error = "Cancelled" }
+    # Store process for Ctrl+C handler
+    $script:CurrentAIProcess = $Process
+    
+    # Set up Ctrl+C handler
+    $ctrlCPressed = $false
+    $originalHandler = [Console]::TreatControlCAsInput
+    [Console]::TreatControlCAsInput = $true
+    
+    try {
+        while (-not $Process.HasExited -or $reader.Peek() -ge 0) {
+            # Check timeout
+            if ($elapsed -gt $timeoutMs) {
+                Write-Host "`n[TIMEOUT] Process exceeded $TimeoutSeconds seconds" -ForegroundColor $script:StreamColors.Error
+                try { $Process.Kill() } catch { }
+                return @{ Success = $false; Output = $fullOutput; Result = $resultText; Error = "Timeout" }
             }
-        }
-        
-        # Try to read a line
-        if ($reader.Peek() -ge 0) {
-            $line = $reader.ReadLine()
-            if ($line) {
-                $fullOutput += $line + "`n"
-                
-                try {
-                    $json = $line | ConvertFrom-Json -ErrorAction Stop
+            
+            # Check for Ctrl+C
+            if ([Console]::KeyAvailable) {
+                $key = [Console]::ReadKey($true)
+                if ($key.Key -eq 'C' -and ($key.Modifiers -band [ConsoleModifiers]::Control)) {
+                    Write-Host "`n[CANCELLED] Stopping AI process..." -ForegroundColor $script:StreamColors.Error
+                    try { $Process.Kill() } catch { }
+                    $ctrlCPressed = $true
+                    return @{ Success = $false; Output = $fullOutput; Result = $resultText; Error = "Cancelled" }
+                }
+            }
+            
+            # Try to read a line
+            if ($reader.Peek() -ge 0) {
+                $line = $reader.ReadLine()
+                if ($line) {
+                    $fullOutput += $line + "`n"
                     
-                    switch ($json.type) {
-                        # Common: system init (both Claude and Droid)
-                        "system" {
-                            if ($json.subtype -eq "init") {
-                                Write-Host "[Session] " -ForegroundColor $script:StreamColors.Init -NoNewline
-                                Write-Host "Model: $($json.model)" -ForegroundColor $script:StreamColors.Init
-                            }
-                        }
+                    try {
+                        $json = $line | ConvertFrom-Json -ErrorAction Stop
                         
-                        # Claude: assistant message with content array
-                        "assistant" {
-                            if ($json.message -and $json.message.content) {
-                                foreach ($content in $json.message.content) {
-                                    if ($content.type -eq "text" -and $content.text) {
-                                        Write-Host $content.text -ForegroundColor $script:StreamColors.Text -NoNewline
-                                        $resultText += $content.text
-                                    }
-                                    elseif ($content.type -eq "tool_use") {
-                                        $currentToolName = $content.name
-                                        $inputPreview = Get-ToolInputPreview -Input $content.input
-                                        Write-Host "`n[Tool: $currentToolName]$inputPreview" -ForegroundColor $script:StreamColors.Tool
-                                    }
+                        switch ($json.type) {
+                            # Common: system init (both Claude and Droid)
+                            "system" {
+                                if ($json.subtype -eq "init") {
+                                    Write-Host "[Session] " -ForegroundColor $script:StreamColors.Init -NoNewline
+                                    Write-Host "Model: $($json.model)" -ForegroundColor $script:StreamColors.Init
                                 }
                             }
-                        }
-                        
-                        # Droid: message with role and text
-                        "message" {
-                            if ($json.role -eq "assistant" -and $json.text) {
-                                Write-Host $json.text -ForegroundColor $script:StreamColors.Text -NoNewline
-                                $resultText += $json.text
-                            }
-                        }
-                        
-                        # Droid: tool_call
-                        "tool_call" {
-                            $currentToolName = $json.toolName
-                            $inputPreview = Get-ToolInputPreview -Input $json.parameters
-                            Write-Host "`n[Tool: $currentToolName]$inputPreview" -ForegroundColor $script:StreamColors.Tool
-                        }
-                        
-                        # Droid: tool_result
-                        "tool_result" {
-                            if ($currentToolName) {
-                                Write-Host "[Done: $currentToolName]" -ForegroundColor $script:StreamColors.ToolDone
-                                $currentToolName = ""
-                            }
-                        }
-                        
-                        # Claude: user message (tool result)
-                        "user" {
-                            if ($currentToolName) {
-                                Write-Host "[Done: $currentToolName]" -ForegroundColor $script:StreamColors.ToolDone
-                                $currentToolName = ""
-                            }
-                        }
-                        
-                        # Claude: result
-                        "result" {
-                            Write-Host "`n" -NoNewline
-                            if ($json.subtype -eq "success") {
-                                $duration = [math]::Round($json.duration_ms / 1000, 1)
-                                $cost = if ($json.total_cost_usd) { [math]::Round($json.total_cost_usd, 4) } else { 0 }
-                                Write-Host "[Complete] " -ForegroundColor $script:StreamColors.Result -NoNewline
-                                Write-Host "Duration: ${duration}s | Cost: `$$cost" -ForegroundColor $script:StreamColors.Cost
-                                
-                                if ($json.result) {
-                                    $resultText = $json.result
-                                }
-                            }
-                            else {
-                                Write-Host "[Error] $($json.subtype)" -ForegroundColor $script:StreamColors.Error
-                            }
-                        }
-                        
-                        # Droid: completion
-                        "completion" {
-                            Write-Host "`n" -NoNewline
-                            $duration = [math]::Round($json.durationMs / 1000, 1)
-                            Write-Host "[Complete] " -ForegroundColor $script:StreamColors.Result -NoNewline
-                            Write-Host "Duration: ${duration}s | Turns: $($json.numTurns)" -ForegroundColor $script:StreamColors.Cost
                             
-                            if ($json.finalText) {
-                                $resultText = $json.finalText
+                            # Claude: assistant message with content array
+                            "assistant" {
+                                if ($json.message -and $json.message.content) {
+                                    foreach ($content in $json.message.content) {
+                                        if ($content.type -eq "text" -and $content.text) {
+                                            Write-Host $content.text -ForegroundColor $script:StreamColors.Text -NoNewline
+                                            $resultText += $content.text
+                                        }
+                                        elseif ($content.type -eq "tool_use") {
+                                            $currentToolName = $content.name
+                                            $inputPreview = Get-ToolInputPreview -Input $content.input
+                                            Write-Host "`n[Tool: $currentToolName]$inputPreview" -ForegroundColor $script:StreamColors.Tool
+                                        }
+                                    }
+                                }
+                            }
+                        
+                            # Droid: message with role and text
+                            "message" {
+                                if ($json.role -eq "assistant" -and $json.text) {
+                                    Write-Host $json.text -ForegroundColor $script:StreamColors.Text -NoNewline
+                                    $resultText += $json.text
+                                }
+                            }
+                            
+                            # Droid: tool_call
+                            "tool_call" {
+                                $currentToolName = $json.toolName
+                                $inputPreview = Get-ToolInputPreview -Input $json.parameters
+                                Write-Host "`n[Tool: $currentToolName]$inputPreview" -ForegroundColor $script:StreamColors.Tool
+                            }
+                            
+                            # Droid: tool_result
+                            "tool_result" {
+                                if ($currentToolName) {
+                                    Write-Host "[Done: $currentToolName]" -ForegroundColor $script:StreamColors.ToolDone
+                                    $currentToolName = ""
+                                }
+                            }
+                            
+                            # Claude: user message (tool result)
+                            "user" {
+                                if ($currentToolName) {
+                                    Write-Host "[Done: $currentToolName]" -ForegroundColor $script:StreamColors.ToolDone
+                                    $currentToolName = ""
+                                }
+                            }
+                            
+                            # Claude: result
+                            "result" {
+                                Write-Host "`n" -NoNewline
+                                if ($json.subtype -eq "success") {
+                                    $duration = [math]::Round($json.duration_ms / 1000, 1)
+                                    $cost = if ($json.total_cost_usd) { [math]::Round($json.total_cost_usd, 4) } else { 0 }
+                                    Write-Host "[Complete] " -ForegroundColor $script:StreamColors.Result -NoNewline
+                                    Write-Host "Duration: ${duration}s | Cost: `$$cost" -ForegroundColor $script:StreamColors.Cost
+                                    
+                                    if ($json.result) {
+                                        $resultText = $json.result
+                                    }
+                                }
+                                else {
+                                    Write-Host "[Error] $($json.subtype)" -ForegroundColor $script:StreamColors.Error
+                                }
+                            }
+                            
+                            # Droid: completion
+                            "completion" {
+                                Write-Host "`n" -NoNewline
+                                $duration = [math]::Round($json.durationMs / 1000, 1)
+                                Write-Host "[Complete] " -ForegroundColor $script:StreamColors.Result -NoNewline
+                                Write-Host "Duration: ${duration}s | Turns: $($json.numTurns)" -ForegroundColor $script:StreamColors.Cost
+                                
+                                if ($json.finalText) {
+                                    $resultText = $json.finalText
+                                }
                             }
                         }
                     }
-                }
-                catch {
-                    # Not valid JSON, show as raw output
-                    Write-Host $line -ForegroundColor $script:StreamColors.Text
-                    $resultText += $line + "`n"
+                    catch {
+                        # Not valid JSON, show as raw output
+                        Write-Host $line -ForegroundColor $script:StreamColors.Text
+                        $resultText += $line + "`n"
+                    }
                 }
             }
+            else {
+                Start-Sleep -Milliseconds $CheckIntervalMs
+                $elapsed += $CheckIntervalMs
+            }
         }
-        else {
-            Start-Sleep -Milliseconds $CheckIntervalMs
-            $elapsed += $CheckIntervalMs
+        
+        Write-Host ""  # Final newline
+        
+        return @{
+            Success = $true
+            Output = $fullOutput
+            Result = $resultText
+            Error = $null
         }
     }
-    
-    Write-Host ""  # Final newline
-    
-    return @{
-        Success = $true
-        Output = $fullOutput
-        Result = $resultText
-        Error = $null
+    finally {
+        # Restore original Ctrl+C handling
+        [Console]::TreatControlCAsInput = $originalHandler
+        $script:CurrentAIProcess = $null
     }
 }
 
@@ -263,11 +281,6 @@ $script:Providers = @{
         CheckArgs   = "--version"
         Description = "Factory Droid CLI"
     }
-    aider  = @{
-        Command     = "aider"
-        CheckArgs   = "--version"
-        Description = "Aider AI CLI"
-    }
 }
 
 function Test-AIProvider {
@@ -277,7 +290,7 @@ function Test-AIProvider {
     #>
     param(
         [Parameter(Mandatory)]
-        [ValidateSet("claude", "droid", "aider")]
+        [ValidateSet("claude", "droid")]
         [string]$Provider
     )
     
@@ -316,9 +329,9 @@ function Get-AvailableProviders {
 function Get-AutoProvider {
     <#
     .SYNOPSIS
-        Get first available provider (priority: claude > droid > aider)
+        Get first available provider (priority: claude > droid)
     #>
-    $priority = @("claude", "droid", "aider")
+    $priority = @("claude", "droid")
     
     foreach ($provider in $priority) {
         if (Test-AIProvider -Provider $provider) {
@@ -372,7 +385,7 @@ function Invoke-AICommand {
     #>
     param(
         [Parameter(Mandatory)]
-        [ValidateSet("claude", "droid", "aider")]
+        [ValidateSet("claude", "droid")]
         [string]$Provider,
         
         [Parameter(Mandatory)]
@@ -392,12 +405,6 @@ function Invoke-AICommand {
         "droid" {
             # Droid CLI: echo content | droid exec --skip-permissions-unsafe "prompt"
             $result = $Content | droid exec --skip-permissions-unsafe "$PromptText" 2>&1
-        }
-        "aider" {
-            if (-not $InputFile) {
-                throw "Aider requires InputFile parameter"
-            }
-            $result = aider --yes --no-auto-commits --message "$PromptText" $InputFile 2>&1
         }
     }
     
@@ -509,19 +516,27 @@ function Invoke-AIWithTimeout {
                     Write-AIStatus -Level "DEBUG" -Message "Stream output: enabled"
                 }
                 
-                # Escape prompt for command line - use temp file for long/complex prompts
-                $tempPromptFile = Join-Path $env:TEMP "hermes-claude-prompt-$(Get-Random).txt"
-                $promptArg | Set-Content -Path $tempPromptFile -Encoding UTF8
-                $escapedPrompt = (Get-Content $tempPromptFile -Raw) -replace '"', '\"'
-                
                 # Build arguments based on stream mode
                 $outputFormat = if ($StreamOutput) { "stream-json" } else { "text" }
                 $verboseFlag = if ($StreamOutput) { " --verbose" } else { "" }
                 
-                # Use Start-Process with timeout for claude
+                # Claude CLI: Content piped via stdin, short prompt as argument
+                # Combine instructions and content in stdin since prompt can be very long
+                $fullInput = @"
+# INSTRUCTIONS (Follow these exactly)
+
+$promptArg
+
+# CONTENT TO PROCESS (Apply the instructions above to this content)
+
+$stdinContent
+"@
+                Write-AIStatus -Level "DEBUG" -Message "Full input length: $($fullInput.Length) chars"
+                
                 $pinfo = New-Object System.Diagnostics.ProcessStartInfo
                 $pinfo.FileName = "claude"
-                $pinfo.Arguments = "-p `"$escapedPrompt`" --dangerously-skip-permissions --output-format $outputFormat$verboseFlag"
+                # Short prompt tells Claude to read instructions from stdin
+                $pinfo.Arguments = "-p `"Process the INSTRUCTIONS and CONTENT provided via stdin. Output ONLY what the instructions request, nothing else.`" --dangerously-skip-permissions --output-format $outputFormat$verboseFlag"
                 $pinfo.RedirectStandardOutput = $true
                 $pinfo.RedirectStandardError = $true
                 $pinfo.RedirectStandardInput = $true
@@ -533,10 +548,8 @@ function Invoke-AIWithTimeout {
                 $process.StartInfo = $pinfo
                 $process.Start() | Out-Null
                 
-                # Write content to stdin if we have it (like: cat content | claude -p "prompt")
-                if ($stdinContent) {
-                    $process.StandardInput.Write($stdinContent)
-                }
+                # Send combined instructions+content via stdin
+                $process.StandardInput.Write($fullInput)
                 $process.StandardInput.Close()
                 
                 if ($StreamOutput) {
@@ -545,7 +558,6 @@ function Invoke-AIWithTimeout {
                     $streamResult = Read-AIStreamOutput -Process $process -Provider "claude" -TimeoutSeconds $TimeoutSeconds
                     
                     if (-not $streamResult.Success) {
-                        Remove-Item $tempPromptFile -Force -ErrorAction SilentlyContinue
                         throw "AI execution failed: $($streamResult.Error)"
                     }
                     
@@ -559,7 +571,6 @@ function Invoke-AIWithTimeout {
                     if (-not $exited) {
                         Write-AIStatus -Level "ERROR" -Message "Process timed out!"
                         $process.Kill()
-                        Remove-Item $tempPromptFile -Force -ErrorAction SilentlyContinue
                         throw "AI timeout after $TimeoutSeconds seconds"
                     }
                     
@@ -571,9 +582,6 @@ function Invoke-AIWithTimeout {
                 if ($stderr) {
                     Write-AIStatus -Level "WARN" -Message "Claude stderr: $stderr"
                 }
-                
-                # Cleanup temp file
-                Remove-Item $tempPromptFile -Force -ErrorAction SilentlyContinue
             }
             "droid" {
                 # Write prompt to temp file and call droid directly
@@ -636,40 +644,6 @@ function Invoke-AIWithTimeout {
                 
                 # Cleanup temp file
                 Remove-Item $tempPromptFile -Force -ErrorAction SilentlyContinue
-            }
-            "aider" {
-                if (-not $InputFile) {
-                    throw "Aider requires InputFile parameter"
-                }
-                
-                # Use Start-Process with timeout for aider
-                $pinfo = New-Object System.Diagnostics.ProcessStartInfo
-                $pinfo.FileName = "aider"
-                $pinfo.Arguments = "--yes --no-auto-commits --message `"$PromptText`" `"$InputFile`""
-                $pinfo.RedirectStandardOutput = $true
-                $pinfo.RedirectStandardError = $true
-                $pinfo.UseShellExecute = $false
-                $pinfo.CreateNoWindow = $true
-                
-                Write-AIStatus -Level "DEBUG" -Message "Starting aider process..."
-                $process = New-Object System.Diagnostics.Process
-                $process.StartInfo = $pinfo
-                $process.Start() | Out-Null
-                
-                Write-AIStatus -Level "DEBUG" -Message "Waiting for aider process (timeout: $TimeoutSeconds s)..."
-                $exited = Wait-ProcessWithCtrlC -Process $process -TimeoutSeconds $TimeoutSeconds
-                if (-not $exited) {
-                    Write-AIStatus -Level "ERROR" -Message "Process timed out!"
-                    $process.Kill()
-                    throw "AI timeout after $TimeoutSeconds seconds"
-                }
-                
-                $result = $process.StandardOutput.ReadToEnd()
-                $stderr = $process.StandardError.ReadToEnd()
-                Write-AIStatus -Level "DEBUG" -Message "Process exited with code: $($process.ExitCode)"
-                if ($stderr) {
-                    Write-AIStatus -Level "WARN" -Message "Aider stderr: $stderr"
-                }
             }
         }
         
@@ -805,7 +779,9 @@ function Invoke-AIWithRetry {
         
         [int]$MaxRetries = 10,
         
-        [int]$TimeoutSeconds = 1200
+        [int]$TimeoutSeconds = 1200,
+        
+        [switch]$StreamOutput
     )
     
     $retryDelay = $script:Config.RetryDelaySeconds
@@ -816,7 +792,8 @@ function Invoke-AIWithRetry {
             
             $result = Invoke-AIWithTimeout -Provider $Provider `
                 -PromptText $PromptText -Content $Content `
-                -InputFile $InputFile -TimeoutSeconds $TimeoutSeconds
+                -InputFile $InputFile -TimeoutSeconds $TimeoutSeconds `
+                -StreamOutput:$StreamOutput
             
             # Debug: log result length and preview
             $resultLen = if ($result) { $result.Length } else { 0 }
@@ -878,7 +855,7 @@ function Invoke-TaskExecution {
     #>
     param(
         [Parameter(Mandatory)]
-        [ValidateSet("claude", "droid", "aider")]
+        [ValidateSet("claude", "droid")]
         [string]$Provider,
         
         [Parameter(Mandatory)]
@@ -922,10 +899,6 @@ function Invoke-TaskExecution {
                 $pinfo.FileName = "droid"
                 $outputFormat = if ($StreamOutput) { " --output-format stream-json" } else { "" }
                 $pinfo.Arguments = "exec --skip-permissions-unsafe --file `"$tempPromptFile`"$outputFormat"
-            }
-            "aider" {
-                $pinfo.FileName = "aider"
-                $pinfo.Arguments = "--yes --no-auto-commits --message `"Execute the task described in this file`" `"$tempPromptFile`""
             }
         }
         
@@ -999,8 +972,7 @@ function Write-AIProviderList {
         Write-Host ""
         Write-Host "Install one of the following:" -ForegroundColor Yellow
         Write-Host "  - claude  : npm install -g @anthropic-ai/claude-code"
-        Write-Host "  - droid   : npm install -g @anthropic-ai/droid"
-        Write-Host "  - aider   : pip install aider-chat"
+        Write-Host "  - droid   : curl -fsSL https://app.factory.ai/cli | sh"
         return
     }
     

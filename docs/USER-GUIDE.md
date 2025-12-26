@@ -1,6 +1,6 @@
 # Hermes for Claude Code - User Guide
 
-Autonomous AI development loop system for Windows PowerShell. Supports Claude, Droid, and Aider CLIs.
+Autonomous AI development loop system for Windows PowerShell. Supports Claude and Droid CLIs.
 
 ---
 
@@ -24,13 +24,13 @@ Autonomous AI development loop system for Windows PowerShell. Supports Claude, D
 
 ### What is Hermes?
 
-Hermes is a system that automates software development by running AI CLI tools (Claude Code, Droid, Aider) in an autonomous loop.
+Hermes is a system that automates software development by running AI CLI tools (Claude Code, Droid) in an autonomous loop.
 
 ### Key Features
 
 | Feature            | Description                                      |
 |--------------------|--------------------------------------------------|
-| Multi-AI Support   | Supports Claude, Droid, and Aider CLIs           |
+| Multi-AI Support   | Supports Claude and Droid CLIs                   |
 | Task Mode          | Structured task-based development                |
 | Auto Branch        | Automatic Git branch creation for each feature   |
 | Auto Commit        | Automatic commit on task completion              |
@@ -75,7 +75,7 @@ hermes-claude-code/
 |----------------|---------------------------------------|
 | PowerShell 7+  | NOT Windows PowerShell 5.1            |
 | Git            | Version control                       |
-| AI CLI         | At least one: claude, droid, or aider |
+| AI CLI         | At least one: claude or droid         |
 
 ### Installing Dependencies
 
@@ -88,7 +88,7 @@ choco install powershell-core git
 
 # AI CLI installation (install at least one)
 npm install -g @anthropic-ai/claude-code  # Claude
-pip install aider-chat                     # Aider
+curl -fsSL https://app.factory.ai/cli | sh # Droid
 ```
 
 ### Installing Hermes
@@ -200,7 +200,7 @@ hermes [-Monitor] [-Calls <int>] [-Timeout <int>] [-VerboseProgress]
 
 | Parameter          | Default | Description                            |
 |--------------------|---------|----------------------------------------|
-| `-AI`              | auto    | AI provider: claude, droid, aider, auto |
+| `-AI`              | auto    | AI provider: claude, droid, auto        |
 | `-Calls`           | 100     | Maximum API calls per hour             |
 | `-Timeout`         | 15      | AI timeout (minutes)                   |
 | `-Monitor`         | -       | Open monitoring window                 |
@@ -494,7 +494,6 @@ Next: Run 'hermes -TaskMode -AutoBranch -AutoCommit' to implement
 |----------|----------|--------------------|
 | Claude   | `claude` | Claude Code CLI    |
 | Droid    | `droid`  | Factory Droid CLI  |
-| Aider    | `aider`  | Aider AI CLI       |
 
 ### Task-Based AI Selection
 
@@ -522,7 +521,6 @@ If no config exists, Hermes automatically detects available AI CLIs. Priority or
 
 1. `claude` (highest)
 2. `droid`
-3. `aider`
 
 ### Provider Selection
 
@@ -535,7 +533,7 @@ hermes-add "feature"
 # Override with specific provider
 hermes -TaskMode -AI claude
 hermes-prd .hermes/docs/PRD.md -AI droid
-hermes-add "feature" -AI aider
+hermes-add "feature" -AI droid
 ```
 
 ### Provider Check
@@ -763,8 +761,8 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 # Claude
 npm install -g @anthropic-ai/claude-code
 
-# Aider
-pip install aider-chat
+# Droid
+curl -fsSL https://app.factory.ai/cli | sh
 ```
 
 ### PATH Not Updated

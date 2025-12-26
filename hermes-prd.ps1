@@ -14,7 +14,7 @@ param(
     [Parameter(Position = 0)]
     [string]$PrdFile,
     
-    [ValidateSet("claude", "droid", "aider", "auto")]
+    [ValidateSet("claude", "droid", "auto")]
     [string]$AI = "auto",
     
     [switch]$List,
@@ -243,7 +243,7 @@ function Show-Usage {
     Write-Host ""
     Write-Host "Parameters:" -ForegroundColor Yellow
     Write-Host "  <prd-file>     Path to PRD markdown file"
-    Write-Host "  -AI            AI provider: claude, droid, aider, auto (default: auto)"
+    Write-Host "  -AI            AI provider: claude, droid, auto (default: auto)"
     Write-Host "  -DryRun        Show what would be created without writing files"
     Write-Host "  -OutputDir     Output directory (default: tasks)"
     Write-Host "  -Timeout       AI timeout in seconds (default: 1200)"
@@ -424,7 +424,7 @@ Write-Log -Level "INFO" -Message "PRD size: $($prdInfo.Size) chars, $($prdInfo.L
 # Determine AI provider for planning tasks (CLI > config > auto-detect)
 $AI = Get-AIForTask -TaskType "planning" -Override $(if ($AI -ne "auto") { $AI } else { $null })
 if (-not $AI) {
-    Write-Log -Level "ERROR" -Message "No AI provider found. Install claude, droid, or aider."
+    Write-Log -Level "ERROR" -Message "No AI provider found. Install claude or droid."
     Close-Logger -Success $false
     exit 1
 }
@@ -486,12 +486,16 @@ $fullPrompt = $fullPrompt -replace '\{INCREMENTAL_CONTEXT\}', $incrementalContex
 Write-Log -Level "INFO" -Message "Parsing PRD with $AI..."
 Write-Host ""
 
+# Check config for stream output setting
+$streamEnabled = (Get-ConfigValue -Key "ai.streamOutput") -eq $true
+
 $result = Invoke-AIWithRetry -Provider $AI `
     -PromptText $fullPrompt `
     -Content $prdInfo.Content `
     -InputFile $PrdFile `
     -MaxRetries $MaxRetries `
-    -TimeoutSeconds $Timeout
+    -TimeoutSeconds $Timeout `
+    -StreamOutput:$streamEnabled
 
 if (-not $result.Success) {
     Write-Log -Level "ERROR" -Message "Failed to parse PRD: $($result.Error)"

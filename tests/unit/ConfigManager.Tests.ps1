@@ -152,11 +152,11 @@ Describe "ConfigManager" {
         It "Should merge project config over defaults" {
             New-Item -ItemType Directory -Path (Join-Path $script:testDir ".hermes") -Force | Out-Null
             $projectConfig = Join-Path $script:testDir ".hermes\config.json"
-            '{"ai": {"planning": "aider", "timeout": 600}}' | Set-Content $projectConfig
+            '{"ai": {"planning": "droid", "timeout": 600}}' | Set-Content $projectConfig
             
             $config = Get-HermesConfig -BasePath $script:testDir
             
-            $config.ai.planning | Should Be "aider"
+            $config.ai.planning | Should Be "droid"
             $config.ai.coding | Should Be "droid"
             $config.ai.timeout | Should Be 600
             $config.ai.maxRetries | Should Be 10
@@ -186,9 +186,9 @@ Describe "ConfigManager" {
         }
         
         It "Should return override when provided" {
-            $value = Get-ConfigValue -Key "ai.planning" -Override "aider" -BasePath $script:testDir
+            $value = Get-ConfigValue -Key "ai.planning" -Override "droid" -BasePath $script:testDir
             
-            $value | Should Be "aider"
+            $value | Should Be "droid"
         }
         
         It "Should return null for non-existent key" {
@@ -390,9 +390,9 @@ Describe "ConfigManager" {
         }
         
         It "Should respect CLI override for planning" {
-            $result = Get-AIForTask -TaskType "planning" -Override "aider"
+            $result = Get-AIForTask -TaskType "planning" -Override "droid"
             
-            $result | Should Be "aider"
+            $result | Should Be "droid"
         }
         
         It "Should respect CLI override for coding" {
@@ -405,7 +405,7 @@ Describe "ConfigManager" {
             # Create project config with custom planning AI
             $config = @{
                 ai = @{
-                    planning = "aider"
+                    planning = "droid"
                     coding = "claude"
                 }
             }
@@ -415,7 +415,7 @@ Describe "ConfigManager" {
             $planningResult = Get-AIForTask -TaskType "planning"
             $codingResult = Get-AIForTask -TaskType "coding"
             
-            $planningResult | Should Be "aider"
+            $planningResult | Should Be "droid"
             $codingResult | Should Be "claude"
         }
         
@@ -425,7 +425,7 @@ Describe "ConfigManager" {
                 ai = @{
                     planning = $null
                     coding = $null
-                    provider = "aider"
+                    provider = "droid"
                 }
             }
             New-Item -ItemType Directory -Path ".hermes" -Force | Out-Null
@@ -433,7 +433,7 @@ Describe "ConfigManager" {
             
             $result = Get-AIForTask -TaskType "planning"
             
-            $result | Should Be "aider"
+            $result | Should Be "droid"
         }
         
         It "Should ignore auto as override" {
