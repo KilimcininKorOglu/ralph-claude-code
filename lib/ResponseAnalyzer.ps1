@@ -70,9 +70,9 @@ $script:NoWorkPatterns = @(
 )
 
 # File paths
-$script:AnalysisResultFile = ".response_analysis"
-$script:LastOutputLengthFile = ".last_output_length"
-$script:ExitSignalsFile = ".exit_signals"
+$script:AnalysisResultFile = ".hermes\.response_analysis"
+$script:LastOutputLengthFile = ".hermes\.last_output_length"
+$script:ExitSignalsFile = ".hermes\.exit_signals"
 
 function Invoke-ResponseAnalysis {
     <#

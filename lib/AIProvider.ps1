@@ -162,7 +162,7 @@ function Invoke-AICommand {
             $result = $Content | claude -p $PromptText 2>&1
         }
         "droid" {
-            $result = $Content | droid exec --auto low $PromptText 2>&1
+            $result = $Content | droid exec --auto high --dangerously-skip-permissions $PromptText 2>&1
         }
         "aider" {
             if (-not $InputFile) {
@@ -472,7 +472,7 @@ function Invoke-TaskExecution {
                 $content | claude 2>&1
             }
             "droid" {
-                $content | droid exec --auto low 2>&1
+                $content | droid exec --auto high --dangerously-skip-permissions 2>&1
             }
             "aider" {
                 $tempFile = [System.IO.Path]::GetTempFileName()

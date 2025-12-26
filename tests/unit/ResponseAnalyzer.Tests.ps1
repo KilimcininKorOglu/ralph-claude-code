@@ -11,10 +11,11 @@ Describe "ResponseAnalyzer Module" {
     BeforeEach {
         $script:testDir = Join-Path $env:TEMP "hermes-response-test-$(Get-Random)"
         New-Item -ItemType Directory -Path $script:testDir -Force | Out-Null
+        New-Item -ItemType Directory -Path (Join-Path $script:testDir ".hermes") -Force | Out-Null
         Push-Location $script:testDir
-        Remove-Item ".response_analysis" -ErrorAction SilentlyContinue
-        Remove-Item ".exit_signals" -ErrorAction SilentlyContinue
-        Remove-Item ".last_output_length" -ErrorAction SilentlyContinue
+        Remove-Item ".hermes\.response_analysis" -ErrorAction SilentlyContinue
+        Remove-Item ".hermes\.exit_signals" -ErrorAction SilentlyContinue
+        Remove-Item ".hermes\.last_output_length" -ErrorAction SilentlyContinue
         Remove-Item "test_output.log" -ErrorAction SilentlyContinue
     }
     
@@ -34,7 +35,7 @@ Describe "ResponseAnalyzer Module" {
             
             Invoke-ResponseAnalysis -OutputFile "test_output.log" -LoopNumber 1
             
-            Test-Path ".response_analysis" | Should Be $true
+            Test-Path ".hermes\.response_analysis" | Should Be $true
         }
         
         It "should store loop number in result" {
@@ -42,7 +43,7 @@ Describe "ResponseAnalyzer Module" {
             
             Invoke-ResponseAnalysis -OutputFile "test_output.log" -LoopNumber 42
             
-            $result = Get-Content ".response_analysis" -Raw | ConvertFrom-Json
+            $result = Get-Content ".hermes\.response_analysis" -Raw | ConvertFrom-Json
             $result.loop_number | Should Be 42
         }
         
@@ -51,7 +52,7 @@ Describe "ResponseAnalyzer Module" {
             
             Invoke-ResponseAnalysis -OutputFile "test_output.log" -LoopNumber 1
             
-            $result = Get-Content ".response_analysis" -Raw | ConvertFrom-Json
+            $result = Get-Content ".hermes\.response_analysis" -Raw | ConvertFrom-Json
             ($result.analysis.output_length -gt 0) | Should Be $true
         }
     }
@@ -69,7 +70,7 @@ RECOMMENDATION: All done
             
             Invoke-ResponseAnalysis -OutputFile "test_output.log" -LoopNumber 1
             
-            $result = Get-Content ".response_analysis" -Raw | ConvertFrom-Json
+            $result = Get-Content ".hermes\.response_analysis" -Raw | ConvertFrom-Json
             $result.analysis.exit_signal | Should Be $true
             ($result.analysis.confidence_score -ge 100) | Should Be $true
         }
@@ -84,7 +85,7 @@ EXIT_SIGNAL: false
             
             Invoke-ResponseAnalysis -OutputFile "test_output.log" -LoopNumber 1
             
-            $result = Get-Content ".response_analysis" -Raw | ConvertFrom-Json
+            $result = Get-Content ".hermes\.response_analysis" -Raw | ConvertFrom-Json
             $result.analysis.has_completion_signal | Should Be $true
         }
         
@@ -99,7 +100,7 @@ EXIT_SIGNAL: false
             
             Invoke-ResponseAnalysis -OutputFile "test_output.log" -LoopNumber 1
             
-            $result = Get-Content ".response_analysis" -Raw | ConvertFrom-Json
+            $result = Get-Content ".hermes\.response_analysis" -Raw | ConvertFrom-Json
             $result.analysis.is_test_only | Should Be $true
         }
     }
@@ -110,7 +111,7 @@ EXIT_SIGNAL: false
             
             Invoke-ResponseAnalysis -OutputFile "test_output.log" -LoopNumber 1
             
-            $result = Get-Content ".response_analysis" -Raw | ConvertFrom-Json
+            $result = Get-Content ".hermes\.response_analysis" -Raw | ConvertFrom-Json
             $result.analysis.has_completion_signal | Should Be $true
         }
         
@@ -119,7 +120,7 @@ EXIT_SIGNAL: false
             
             Invoke-ResponseAnalysis -OutputFile "test_output.log" -LoopNumber 1
             
-            $result = Get-Content ".response_analysis" -Raw | ConvertFrom-Json
+            $result = Get-Content ".hermes\.response_analysis" -Raw | ConvertFrom-Json
             $result.analysis.has_completion_signal | Should Be $true
         }
         
@@ -128,7 +129,7 @@ EXIT_SIGNAL: false
             
             Invoke-ResponseAnalysis -OutputFile "test_output.log" -LoopNumber 1
             
-            $result = Get-Content ".response_analysis" -Raw | ConvertFrom-Json
+            $result = Get-Content ".hermes\.response_analysis" -Raw | ConvertFrom-Json
             $result.analysis.has_completion_signal | Should Be $true
         }
     }
@@ -143,7 +144,7 @@ All tests passed
             
             Invoke-ResponseAnalysis -OutputFile "test_output.log" -LoopNumber 1
             
-            $result = Get-Content ".response_analysis" -Raw | ConvertFrom-Json
+            $result = Get-Content ".hermes\.response_analysis" -Raw | ConvertFrom-Json
             $result.analysis.is_test_only | Should Be $true
         }
         
@@ -156,7 +157,7 @@ all tests passed
             
             Invoke-ResponseAnalysis -OutputFile "test_output.log" -LoopNumber 1
             
-            $result = Get-Content ".response_analysis" -Raw | ConvertFrom-Json
+            $result = Get-Content ".hermes\.response_analysis" -Raw | ConvertFrom-Json
             $result.analysis.is_test_only | Should Be $true
         }
         
@@ -171,7 +172,7 @@ Tests passed
             
             Invoke-ResponseAnalysis -OutputFile "test_output.log" -LoopNumber 1
             
-            $result = Get-Content ".response_analysis" -Raw | ConvertFrom-Json
+            $result = Get-Content ".hermes\.response_analysis" -Raw | ConvertFrom-Json
             $result.analysis.is_test_only | Should Be $false
         }
     }
@@ -190,7 +191,7 @@ Error: sixth error
             
             Invoke-ResponseAnalysis -OutputFile "test_output.log" -LoopNumber 1
             
-            $result = Get-Content ".response_analysis" -Raw | ConvertFrom-Json
+            $result = Get-Content ".hermes\.response_analysis" -Raw | ConvertFrom-Json
             $result.analysis.is_stuck | Should Be $true
             ($result.analysis.error_count -gt 5) | Should Be $true
         }
@@ -204,7 +205,7 @@ Continuing with work
             
             Invoke-ResponseAnalysis -OutputFile "test_output.log" -LoopNumber 1
             
-            $result = Get-Content ".response_analysis" -Raw | ConvertFrom-Json
+            $result = Get-Content ".hermes\.response_analysis" -Raw | ConvertFrom-Json
             $result.analysis.is_stuck | Should Be $false
         }
     }
@@ -215,7 +216,7 @@ Continuing with work
             
             Invoke-ResponseAnalysis -OutputFile "test_output.log" -LoopNumber 1
             
-            $result = Get-Content ".response_analysis" -Raw | ConvertFrom-Json
+            $result = Get-Content ".hermes\.response_analysis" -Raw | ConvertFrom-Json
             $result.analysis.has_completion_signal | Should Be $true
         }
         
@@ -224,7 +225,7 @@ Continuing with work
             
             Invoke-ResponseAnalysis -OutputFile "test_output.log" -LoopNumber 1
             
-            $result = Get-Content ".response_analysis" -Raw | ConvertFrom-Json
+            $result = Get-Content ".hermes\.response_analysis" -Raw | ConvertFrom-Json
             $result.analysis.has_completion_signal | Should Be $true
         }
     }
@@ -235,7 +236,7 @@ Continuing with work
             
             Invoke-ResponseAnalysis -OutputFile "test_output.log" -LoopNumber 1
             
-            $result = Get-Content ".response_analysis" -Raw | ConvertFrom-Json
+            $result = Get-Content ".hermes\.response_analysis" -Raw | ConvertFrom-Json
             ($result.analysis.confidence_score -ge 10) | Should Be $true
         }
         
@@ -248,7 +249,7 @@ EXIT_SIGNAL: true
             
             Invoke-ResponseAnalysis -OutputFile "test_output.log" -LoopNumber 1
             
-            $result = Get-Content ".response_analysis" -Raw | ConvertFrom-Json
+            $result = Get-Content ".hermes\.response_analysis" -Raw | ConvertFrom-Json
             $result.analysis.confidence_score | Should Be 100
         }
     }
@@ -260,7 +261,7 @@ EXIT_SIGNAL: true
             
             Update-ExitSignals
             
-            Test-Path ".exit_signals" | Should Be $true
+            Test-Path ".hermes\.exit_signals" | Should Be $true
         }
         
         It "should track test-only loops" {
@@ -272,7 +273,7 @@ All tests passed
             Invoke-ResponseAnalysis -OutputFile "test_output.log" -LoopNumber 5
             Update-ExitSignals
             
-            $signals = Get-Content ".exit_signals" -Raw | ConvertFrom-Json
+            $signals = Get-Content ".hermes\.exit_signals" -Raw | ConvertFrom-Json
             ($signals.test_only_loops -contains 5) | Should Be $true
         }
         
@@ -282,7 +283,7 @@ All tests passed
             Invoke-ResponseAnalysis -OutputFile "test_output.log" -LoopNumber 3
             Update-ExitSignals
             
-            $signals = Get-Content ".exit_signals" -Raw | ConvertFrom-Json
+            $signals = Get-Content ".hermes\.exit_signals" -Raw | ConvertFrom-Json
             ($signals.done_signals -contains 3) | Should Be $true
         }
         
@@ -291,13 +292,13 @@ All tests passed
                 test_only_loops = @(1, 2, 3, 4, 5, 6)
                 done_signals = @()
                 completion_indicators = @()
-            } | ConvertTo-Json | Set-Content ".exit_signals"
+            } | ConvertTo-Json | Set-Content ".hermes\.exit_signals"
             
             "Running npm test" | Set-Content "test_output.log"
             Invoke-ResponseAnalysis -OutputFile "test_output.log" -LoopNumber 7
             Update-ExitSignals
             
-            $signals = Get-Content ".exit_signals" -Raw | ConvertFrom-Json
+            $signals = Get-Content ".hermes\.exit_signals" -Raw | ConvertFrom-Json
             (@($signals.test_only_loops).Count -le 5) | Should Be $true
         }
     }
@@ -329,7 +330,7 @@ All tests passed
                 test_only_loops = @(1, 2)
                 done_signals = @(3)
                 completion_indicators = @()
-            } | ConvertTo-Json | Set-Content ".exit_signals"
+            } | ConvertTo-Json | Set-Content ".hermes\.exit_signals"
             
             $result = Get-ExitSignals
             $result | Should Not BeNullOrEmpty

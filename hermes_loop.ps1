@@ -127,15 +127,15 @@ $script:Config = @{
     PromptFile = $Prompt
     LogDir = Get-ConfigValue -Key "paths.logsDir" -Override $(if ($PSBoundParameters.ContainsKey('LogDir')) { $LogDir } else { $null })
     DocsDir = "docs\generated"
-    StatusFile = "status.json"
-    ProgressFile = "progress.json"
+    StatusFile = ".hermes\status.json"
+    ProgressFile = ".hermes\progress.json"
     AIProvider = $script:ResolvedAIProvider
     AITimeoutMinutes = Get-ConfigValue -Key "loop.timeoutMinutes" -Override $(if ($Timeout -ne 15) { $Timeout } else { $null })
     MaxCallsPerHour = Get-ConfigValue -Key "loop.maxCallsPerHour" -Override $(if ($Calls -ne 100) { $Calls } else { $null })
     VerboseProgress = $VerboseProgress
-    CallCountFile = ".call_count"
-    TimestampFile = ".last_reset"
-    ExitSignalsFile = ".exit_signals"
+    CallCountFile = ".hermes\.call_count"
+    TimestampFile = ".hermes\.last_reset"
+    ExitSignalsFile = ".hermes\.exit_signals"
     MaxConsecutiveTestLoops = 3
     MaxConsecutiveDoneSignals = 2
     # Task Mode Config
@@ -201,7 +201,7 @@ function Show-Help {
     Write-Host "Files created:" -ForegroundColor Yellow
     Write-Host "    - .hermes/logs/      All execution logs"
     Write-Host "    - docs\generated\    Generated documentation"
-    Write-Host "    - status.json        Current status (JSON)"
+    Write-Host "    - .hermes/status.json        Current status (JSON)"
     Write-Host ""
     Write-Host "Example workflow:" -ForegroundColor Yellow
     Write-Host "    hermes-setup my-project     # Create project"
