@@ -73,7 +73,7 @@ func initExecute(projectPath string) error {
 	if err := injector.CreateDefault(); err != nil {
 		return err
 	}
-	fmt.Println("  Created: PROMPT.md")
+	fmt.Println("  Created: .hermes/PROMPT.md")
 
 	// Update .gitignore
 	appendToGitignore(filepath.Join(projectPath, ".gitignore"))

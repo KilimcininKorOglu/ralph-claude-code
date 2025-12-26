@@ -25,7 +25,7 @@ type Injector struct {
 func NewInjector(basePath string) *Injector {
 	return &Injector{
 		basePath:   basePath,
-		promptPath: filepath.Join(basePath, "PROMPT.md"),
+		promptPath: filepath.Join(basePath, ".hermes", "PROMPT.md"),
 	}
 }
 

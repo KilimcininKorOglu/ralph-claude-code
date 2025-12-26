@@ -24,7 +24,7 @@ func setupTestDir(t *testing.T) (string, func()) {
 
 func TestNewInjector(t *testing.T) {
 	i := NewInjector("/test/path")
-	expected := filepath.Join("/test/path", "PROMPT.md")
+	expected := filepath.Join("/test/path", ".hermes", "PROMPT.md")
 	if i.promptPath != expected {
 		t.Errorf("expected promptPath %s, got %s", expected, i.promptPath)
 	}
@@ -305,9 +305,10 @@ func TestCleanupBackups(t *testing.T) {
 	i := NewInjector(tmpDir)
 	i.Write("# Content")
 
-	// Create 5 backups with unique names
+	// Create 5 backups with unique names in .hermes directory
+	hermesDir := filepath.Join(tmpDir, ".hermes")
 	for j := 0; j < 5; j++ {
-		backupName := filepath.Join(tmpDir, "prompt_backup_20240101_00000"+string(rune('0'+j))+".md")
+		backupName := filepath.Join(hermesDir, "prompt_backup_20240101_00000"+string(rune('0'+j))+".md")
 		os.WriteFile(backupName, []byte("backup"), 0644)
 	}
 
