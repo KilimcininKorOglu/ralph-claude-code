@@ -6,13 +6,15 @@
 .DESCRIPTION
     Creates a new Hermes project with standard structure and templates.
 .PARAMETER ProjectName
-    Name of the project to create (default: my-project)
+    Name of the project to create. Use "init" to initialize in current directory.
 .PARAMETER Help
     Show help message
 .EXAMPLE
     .\setup.ps1 my-awesome-project
 .EXAMPLE
     hermes-setup my-awesome-project
+.EXAMPLE
+    hermes-setup init
 #>
 
 [CmdletBinding()]
@@ -39,22 +41,26 @@ function Show-Help {
     Write-Host ""
     Write-Host "Hermes Project Setup" -ForegroundColor Cyan
     Write-Host ""
-    Write-Host "Usage: hermes-setup [PROJECT_NAME]" -ForegroundColor White
+    Write-Host "Usage: hermes-setup [PROJECT_NAME | init]" -ForegroundColor White
     Write-Host ""
     Write-Host "Arguments:" -ForegroundColor Yellow
-    Write-Host "    PROJECT_NAME    Name of the project (default: my-project)"
+    Write-Host "    PROJECT_NAME    Name of the project to create in new directory"
+    Write-Host "    init            Initialize Hermes in current directory"
     Write-Host ""
-    Write-Host "Example:" -ForegroundColor Yellow
-    Write-Host "    hermes-setup my-awesome-project"
+    Write-Host "Examples:" -ForegroundColor Yellow
+    Write-Host "    hermes-setup my-awesome-project    # Create new directory"
     Write-Host "    cd my-awesome-project"
-    Write-Host "    hermes -Monitor"
+    Write-Host "    hermes"
     Write-Host ""
-    Write-Host "This creates a new directory with:" -ForegroundColor Gray
-    Write-Host "    PROMPT.md        Main development instructions for Hermes"
-    Write-Host "    tasks/           Task files (created by hermes-prd)"
-    Write-Host "    specs/           Project specifications"
-    Write-Host "    src/             Source code"
-    Write-Host "    logs/            Execution logs"
+    Write-Host "    hermes-setup init                  # Initialize in current directory"
+    Write-Host "    hermes"
+    Write-Host ""
+    Write-Host "This creates:" -ForegroundColor Gray
+    Write-Host "    .hermes/            Hermes workspace (gitignored)"
+    Write-Host "    .hermes/PROMPT.md   AI instructions"
+    Write-Host "    .hermes/tasks/      Task files (created by hermes-prd)"
+    Write-Host "    .hermes/logs/       Execution logs"
+    Write-Host "    .hermes/docs/       PRD and documentation"
     Write-Host ""
 }
 
@@ -91,9 +97,22 @@ function New-HermesProject {
     #>
     param([string]$Name)
     
-    Write-Host ""
-    Write-Host "Hermes Autonomous Agent - Setting up project: $Name" -ForegroundColor Cyan
-    Write-Host ""
+    # Check if initializing in current directory
+    $initMode = ($Name -eq "init" -or $Name -eq ".")
+    
+    if ($initMode) {
+        $projectPath = Get-Location
+        $displayName = Split-Path $projectPath -Leaf
+        Write-Host ""
+        Write-Host "Hermes Autonomous Agent - Initializing in: $displayName" -ForegroundColor Cyan
+        Write-Host ""
+    }
+    else {
+        $displayName = $Name
+        Write-Host ""
+        Write-Host "Hermes Autonomous Agent - Setting up project: $Name" -ForegroundColor Cyan
+        Write-Host ""
+    }
     
     # Find templates
     $templatesPath = Get-TemplatesPath
@@ -112,21 +131,35 @@ function New-HermesProject {
     
     Write-Host "Using templates from: $templatesPath" -ForegroundColor Gray
     
-    # Check if directory already exists
-    if (Test-Path $Name) {
-        Write-Host "[ERROR] Directory '$Name' already exists!" -ForegroundColor Red
-        Write-Host ""
-        Write-Host "Please choose a different name or remove the existing directory."
-        Write-Host ""
-        exit 1
+    if (-not $initMode) {
+        # Check if directory already exists
+        if (Test-Path $Name) {
+            Write-Host "[ERROR] Directory '$Name' already exists!" -ForegroundColor Red
+            Write-Host ""
+            Write-Host "Please choose a different name or remove the existing directory."
+            Write-Host ""
+            exit 1
+        }
+        
+        # Create project directory
+        New-Item -ItemType Directory -Path $Name -Force | Out-Null
+        Write-Host "[OK] Created directory: $Name" -ForegroundColor Green
+        
+        # Change to project directory
+        Push-Location $Name
     }
-    
-    # Create project directory
-    New-Item -ItemType Directory -Path $Name -Force | Out-Null
-    Write-Host "[OK] Created directory: $Name" -ForegroundColor Green
-    
-    # Change to project directory
-    Push-Location $Name
+    else {
+        # Check if .hermes already exists
+        if (Test-Path ".hermes") {
+            Write-Host "[WARN] .hermes/ already exists in this directory" -ForegroundColor Yellow
+            Write-Host ""
+            $response = Read-Host "Overwrite existing Hermes configuration? (y/N)"
+            if ($response -ne "y" -and $response -ne "Y") {
+                Write-Host "Aborted." -ForegroundColor Gray
+                exit 0
+            }
+        }
+    }
     
     try {
         # Create .hermes directory structure
@@ -152,20 +185,23 @@ function New-HermesProject {
             Write-Host "[OK] Created: .hermes/PROMPT.md" -ForegroundColor Green
         }
         else {
-            $content = Get-DefaultPromptTemplate -ProjectName $Name
+            $content = Get-DefaultPromptTemplate -ProjectName $displayName
             $content | Set-Content $promptDest -Encoding UTF8
             Write-Host "[OK] Created: .hermes/PROMPT.md (default template)" -ForegroundColor Green
         }
         
-        # Create README.md in project root
-        $readme = Get-ProjectReadme -ProjectName $Name
-        $readme | Set-Content "README.md" -Encoding UTF8
-        Write-Host "[OK] Created: README.md" -ForegroundColor Green
-        
-        # Create .gitignore with .hermes/ excluded
-        $gitignore = Get-GitIgnoreContent
-        $gitignore | Set-Content ".gitignore" -Encoding UTF8
-        Write-Host "[OK] Created: .gitignore" -ForegroundColor Green
+        # Create README.md and .gitignore only for new projects (not init mode)
+        if (-not $initMode) {
+            # Create README.md in project root
+            $readme = Get-ProjectReadme -ProjectName $displayName
+            $readme | Set-Content "README.md" -Encoding UTF8
+            Write-Host "[OK] Created: README.md" -ForegroundColor Green
+            
+            # Create .gitignore with .hermes/ excluded
+            $gitignore = Get-GitIgnoreContent
+            $gitignore | Set-Content ".gitignore" -Encoding UTF8
+            Write-Host "[OK] Created: .gitignore" -ForegroundColor Green
+        }
         
         # Create project config if ConfigManager is available
         $configManagerPath = Join-Path $script:HermesHome "lib\ConfigManager.ps1"
@@ -175,30 +211,63 @@ function New-HermesProject {
             Write-Host "[OK] Created: .hermes/config.json" -ForegroundColor Green
         }
         
-        # Initialize git repository
-        try {
-            $gitOutput = git init 2>&1
-            git add . 2>&1 | Out-Null
-            git commit -m "Initial Hermes project setup" 2>&1 | Out-Null
-            Write-Host "[OK] Initialized git repository" -ForegroundColor Green
+        # Initialize git repository (only for new projects)
+        if (-not $initMode) {
+            try {
+                $gitOutput = git init 2>&1
+                git add . 2>&1 | Out-Null
+                git commit -m "Initial Hermes project setup" 2>&1 | Out-Null
+                Write-Host "[OK] Initialized git repository" -ForegroundColor Green
+            }
+            catch {
+                Write-Host "[WARN] Could not initialize git repository" -ForegroundColor Yellow
+            }
         }
-        catch {
-            Write-Host "[WARN] Could not initialize git repository" -ForegroundColor Yellow
+        else {
+            # For init mode, just add .hermes to .gitignore if git exists
+            $isGitRepo = Test-Path ".git"
+            if ($isGitRepo) {
+                # Check if .hermes is already in .gitignore
+                $gitignorePath = ".gitignore"
+                if (Test-Path $gitignorePath) {
+                    $content = Get-Content $gitignorePath -Raw
+                    if ($content -notmatch "\.hermes") {
+                        Add-Content $gitignorePath "`n# Hermes workspace`n.hermes/"
+                        Write-Host "[OK] Added .hermes/ to .gitignore" -ForegroundColor Green
+                    }
+                }
+                else {
+                    ".hermes/" | Set-Content $gitignorePath -Encoding UTF8
+                    Write-Host "[OK] Created .gitignore with .hermes/" -ForegroundColor Green
+                }
+            }
         }
         
         # Success message
         Write-Host ""
-        Write-Host "Project '$Name' created successfully!" -ForegroundColor Green
-        Write-Host ""
-        Write-Host "Next steps:" -ForegroundColor Cyan
-        Write-Host "  1. cd $Name"
-        Write-Host "  2. Create a PRD document (e.g., docs/PRD.md)"
-        Write-Host "  3. Run: hermes-prd docs/PRD.md"
-        Write-Host "  4. Run: hermes -TaskMode -AutoBranch -AutoCommit"
+        if ($initMode) {
+            Write-Host "Hermes initialized successfully in current directory!" -ForegroundColor Green
+            Write-Host ""
+            Write-Host "Next steps:" -ForegroundColor Cyan
+            Write-Host "  1. Copy your PRD: copy PRD.md .hermes/docs/PRD.md"
+            Write-Host "  2. Parse PRD: hermes-prd .hermes/docs/PRD.md"
+            Write-Host "  3. Start: hermes"
+        }
+        else {
+            Write-Host "Project '$Name' created successfully!" -ForegroundColor Green
+            Write-Host ""
+            Write-Host "Next steps:" -ForegroundColor Cyan
+            Write-Host "  1. cd $Name"
+            Write-Host "  2. Copy your PRD: copy PRD.md .hermes/docs/PRD.md"
+            Write-Host "  3. Parse PRD: hermes-prd .hermes/docs/PRD.md"
+            Write-Host "  4. Start: hermes"
+        }
         Write-Host ""
     }
     finally {
-        Pop-Location
+        if (-not $initMode) {
+            Pop-Location
+        }
     }
 }
 
