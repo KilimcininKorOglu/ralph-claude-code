@@ -5,7 +5,7 @@
     Hermes Autonomous Agent - Windows Installation Script
 .DESCRIPTION
     Installs Hermes globally on Windows systems.
-    Creates commands: Hermes, hermes-monitor, hermes-setup, hermes-prd, hermes-add
+    Creates commands: hermes, hermes-monitor, hermes-setup, hermes-prd, hermes-add
 .PARAMETER Uninstall
     Remove Hermes installation
 .PARAMETER Help
