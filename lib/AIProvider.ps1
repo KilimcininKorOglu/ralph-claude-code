@@ -195,47 +195,82 @@ function Invoke-AIWithTimeout {
         [int]$TimeoutSeconds = 1200
     )
     
-    # For droid, write prompt to temp file (prompts can be very long)
+    $result = $null
     $tempPromptFile = $null
-    if ($Provider -eq "droid") {
-        $tempPromptFile = Join-Path $env:TEMP "hermes-prompt-$(Get-Random).md"
-        $PromptText | Set-Content -Path $tempPromptFile -Encoding UTF8
-    }
     
-    $job = Start-Job -ScriptBlock {
-        param($provider, $content, $prompt, $inputFile, $promptFile)
-        
-        switch ($provider) {
+    try {
+        switch ($Provider) {
             "claude" {
-                $content | claude -p $prompt
+                # Use job for claude (may need stdin)
+                $job = Start-Job -ScriptBlock {
+                    param($content, $prompt)
+                    $content | claude -p $prompt
+                } -ArgumentList $Content, $PromptText
+                
+                $completed = Wait-Job $job -Timeout $TimeoutSeconds
+                if (-not $completed) {
+                    Stop-Job $job -ErrorAction SilentlyContinue
+                    Remove-Job $job -Force -ErrorAction SilentlyContinue
+                    throw "AI timeout after $TimeoutSeconds seconds"
+                }
+                $result = Receive-Job $job
+                Remove-Job $job -Force
             }
             "droid" {
-                # Use --file for long prompts
-                droid exec --auto medium --file $promptFile
+                # Write prompt to temp file and call droid directly
+                $tempPromptFile = Join-Path $env:TEMP "hermes-prompt-$(Get-Random).md"
+                $PromptText | Set-Content -Path $tempPromptFile -Encoding UTF8
+                
+                # Use Start-Process with timeout for droid
+                $pinfo = New-Object System.Diagnostics.ProcessStartInfo
+                $pinfo.FileName = "droid"
+                $pinfo.Arguments = "exec --auto medium --file `"$tempPromptFile`""
+                $pinfo.RedirectStandardOutput = $true
+                $pinfo.RedirectStandardError = $true
+                $pinfo.UseShellExecute = $false
+                $pinfo.CreateNoWindow = $true
+                
+                $process = New-Object System.Diagnostics.Process
+                $process.StartInfo = $pinfo
+                $process.Start() | Out-Null
+                
+                $exited = $process.WaitForExit($TimeoutSeconds * 1000)
+                if (-not $exited) {
+                    $process.Kill()
+                    throw "AI timeout after $TimeoutSeconds seconds"
+                }
+                
+                $result = $process.StandardOutput.ReadToEnd()
+                $stderr = $process.StandardError.ReadToEnd()
+                if ($stderr) {
+                    Write-Warning "Droid stderr: $stderr"
+                }
             }
             "aider" {
-                aider --yes --no-auto-commits --message $prompt $inputFile
+                $job = Start-Job -ScriptBlock {
+                    param($prompt, $inputFile)
+                    aider --yes --no-auto-commits --message $prompt $inputFile
+                } -ArgumentList $PromptText, $InputFile
+                
+                $completed = Wait-Job $job -Timeout $TimeoutSeconds
+                if (-not $completed) {
+                    Stop-Job $job -ErrorAction SilentlyContinue
+                    Remove-Job $job -Force -ErrorAction SilentlyContinue
+                    throw "AI timeout after $TimeoutSeconds seconds"
+                }
+                $result = Receive-Job $job
+                Remove-Job $job -Force
             }
         }
-    } -ArgumentList $Provider, $Content, $PromptText, $InputFile, $tempPromptFile
-    
-    $completed = Wait-Job $job -Timeout $TimeoutSeconds
-    
-    if (-not $completed) {
-        Stop-Job $job -ErrorAction SilentlyContinue
-        Remove-Job $job -Force -ErrorAction SilentlyContinue
-        throw "AI timeout after $TimeoutSeconds seconds"
+    }
+    finally {
+        # Cleanup temp prompt file
+        if ($tempPromptFile -and (Test-Path $tempPromptFile)) {
+            Remove-Item $tempPromptFile -Force -ErrorAction SilentlyContinue
+        }
     }
     
-    $result = Receive-Job $job
-    Remove-Job $job -Force
-    
-    # Cleanup temp prompt file
-    if ($tempPromptFile -and (Test-Path $tempPromptFile)) {
-        Remove-Item $tempPromptFile -Force -ErrorAction SilentlyContinue
-    }
-    
-    # Ensure result is a string (Receive-Job can return array)
+    # Ensure result is a string (can return array)
     if ($result -is [array]) {
         $result = $result -join "`n"
     }
