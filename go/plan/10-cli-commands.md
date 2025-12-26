@@ -11,7 +11,7 @@ Implement single `hermes` binary with subcommands using Cobra framework.
 | `hermes run` | Run task execution loop |
 | `hermes prd <file>` | Parse PRD to task files |
 | `hermes add <feature>` | Add single feature |
-| `hermes setup [name]` | Initialize project |
+| `hermes init [name]` | Initialize project |
 | `hermes status` | Show task status |
 | `hermes tui` | Launch interactive TUI |
 | `hermes reset` | Reset circuit breaker |
@@ -45,7 +45,7 @@ func main() {
     rootCmd.AddCommand(cmd.NewRunCmd())
     rootCmd.AddCommand(cmd.NewPrdCmd())
     rootCmd.AddCommand(cmd.NewAddCmd())
-    rootCmd.AddCommand(cmd.NewSetupCmd())
+    rootCmd.AddCommand(cmd.NewInitCmd())
     rootCmd.AddCommand(cmd.NewStatusCmd())
     rootCmd.AddCommand(cmd.NewTuiCmd())
     rootCmd.AddCommand(cmd.NewResetCmd())
@@ -520,10 +520,10 @@ func writeFeatureFile(output string, featureID int) error {
 }
 ```
 
-### 10.5 Setup Command
+### 10.5 Init Command
 
 ```go
-// internal/cmd/setup.go
+// internal/cmd/init.go
 package cmd
 
 import (
@@ -536,27 +536,27 @@ import (
     "hermes/internal/prompt"
 )
 
-func NewSetupCmd() *cobra.Command {
+func NewInitCmd() *cobra.Command {
     cmd := &cobra.Command{
-        Use:   "setup [project-name]",
+        Use:   "init [project-name]",
         Short: "Initialize Hermes project",
         Long:  "Create .hermes directory structure and default configuration",
-        Example: `  hermes setup
-  hermes setup my-project`,
+        Example: `  hermes init
+  hermes init my-project`,
         Args: cobra.MaximumNArgs(1),
         RunE: func(cmd *cobra.Command, args []string) error {
             projectPath := "."
             if len(args) > 0 {
                 projectPath = args[0]
             }
-            return setupExecute(projectPath)
+            return initExecute(projectPath)
         },
     }
     
     return cmd
 }
 
-func setupExecute(projectPath string) error {
+func initExecute(projectPath string) error {
     // Create project directory if needed
     if projectPath != "." {
         if err := os.MkdirAll(projectPath, 0755); err != nil {
@@ -841,7 +841,7 @@ func resetExecute() error {
 | `internal/cmd/run.go` | Run subcommand |
 | `internal/cmd/prd.go` | PRD subcommand |
 | `internal/cmd/add.go` | Add subcommand |
-| `internal/cmd/setup.go` | Setup subcommand |
+| `internal/cmd/init.go` | Init subcommand |
 | `internal/cmd/status.go` | Status subcommand |
 | `internal/cmd/tui.go` | TUI subcommand |
 | `internal/cmd/reset.go` | Reset subcommand |

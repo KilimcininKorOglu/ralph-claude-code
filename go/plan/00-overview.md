@@ -142,7 +142,7 @@ cd go && make build
 make install
 
 # Initialize project
-hermes setup my-project
+hermes init my-project
 
 # Parse PRD
 hermes prd docs/PRD.md
