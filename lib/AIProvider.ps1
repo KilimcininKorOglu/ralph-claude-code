@@ -39,6 +39,153 @@ $script:Config = @{
     RetryDelaySeconds  = 10
 }
 
+# Stream output display colors
+$script:StreamColors = @{
+    Init     = "DarkGray"
+    Text     = "White"
+    Tool     = "Yellow"
+    ToolDone = "DarkYellow"
+    Result   = "Green"
+    Error    = "Red"
+    Cost     = "Cyan"
+}
+
+function Read-AIStreamOutput {
+    <#
+    .SYNOPSIS
+        Read and display AI output in real-time using stream-json format
+    .DESCRIPTION
+        Parses stream-json output from Claude CLI and displays it with colors.
+        Returns the final result text for further processing.
+    #>
+    param(
+        [Parameter(Mandatory)]
+        [System.Diagnostics.Process]$Process,
+        
+        [int]$TimeoutSeconds = 1200,
+        
+        [int]$CheckIntervalMs = 100
+    )
+    
+    $fullOutput = ""
+    $resultText = ""
+    $reader = $Process.StandardOutput
+    $elapsed = 0
+    $timeoutMs = $TimeoutSeconds * 1000
+    $lineBuffer = ""
+    $currentToolName = ""
+    
+    Write-Host ""  # New line before output
+    
+    while (-not $Process.HasExited -or $reader.Peek() -ge 0) {
+        # Check timeout
+        if ($elapsed -gt $timeoutMs) {
+            Write-Host "`n[TIMEOUT] Process exceeded $TimeoutSeconds seconds" -ForegroundColor $script:StreamColors.Error
+            return @{ Success = $false; Output = $fullOutput; Result = $resultText; Error = "Timeout" }
+        }
+        
+        # Check for Ctrl+C
+        if ([Console]::KeyAvailable) {
+            $key = [Console]::ReadKey($true)
+            if ($key.Key -eq 'C' -and $key.Modifiers -eq 'Control') {
+                Write-Host "`n[CANCELLED] Stopped by user" -ForegroundColor $script:StreamColors.Error
+                return @{ Success = $false; Output = $fullOutput; Result = $resultText; Error = "Cancelled" }
+            }
+        }
+        
+        # Try to read a line
+        if ($reader.Peek() -ge 0) {
+            $line = $reader.ReadLine()
+            if ($line) {
+                $fullOutput += $line + "`n"
+                
+                try {
+                    $json = $line | ConvertFrom-Json -ErrorAction Stop
+                    
+                    switch ($json.type) {
+                        "system" {
+                            if ($json.subtype -eq "init") {
+                                Write-Host "[Session] " -ForegroundColor $script:StreamColors.Init -NoNewline
+                                Write-Host "Model: $($json.model)" -ForegroundColor $script:StreamColors.Init
+                            }
+                        }
+                        "assistant" {
+                            if ($json.message -and $json.message.content) {
+                                foreach ($content in $json.message.content) {
+                                    if ($content.type -eq "text" -and $content.text) {
+                                        Write-Host $content.text -ForegroundColor $script:StreamColors.Text -NoNewline
+                                        $resultText += $content.text
+                                    }
+                                    elseif ($content.type -eq "tool_use") {
+                                        $currentToolName = $content.name
+                                        $inputPreview = ""
+                                        if ($content.input) {
+                                            if ($content.input.file_path) {
+                                                $inputPreview = " $($content.input.file_path)"
+                                            }
+                                            elseif ($content.input.command) {
+                                                $cmd = $content.input.command
+                                                if ($cmd.Length -gt 50) { $cmd = $cmd.Substring(0, 47) + "..." }
+                                                $inputPreview = " $cmd"
+                                            }
+                                            elseif ($content.input.pattern) {
+                                                $inputPreview = " '$($content.input.pattern)'"
+                                            }
+                                        }
+                                        Write-Host "`n[Tool: $currentToolName]$inputPreview" -ForegroundColor $script:StreamColors.Tool
+                                    }
+                                }
+                            }
+                        }
+                        "user" {
+                            # Tool result - just show brief confirmation
+                            if ($currentToolName) {
+                                Write-Host "[Done: $currentToolName]" -ForegroundColor $script:StreamColors.ToolDone
+                                $currentToolName = ""
+                            }
+                        }
+                        "result" {
+                            Write-Host "`n" -NoNewline
+                            if ($json.subtype -eq "success") {
+                                $duration = [math]::Round($json.duration_ms / 1000, 1)
+                                $cost = [math]::Round($json.total_cost_usd, 4)
+                                Write-Host "[Complete] " -ForegroundColor $script:StreamColors.Result -NoNewline
+                                Write-Host "Duration: ${duration}s | Cost: `$$cost" -ForegroundColor $script:StreamColors.Cost
+                                
+                                # Use result from JSON if available
+                                if ($json.result) {
+                                    $resultText = $json.result
+                                }
+                            }
+                            else {
+                                Write-Host "[Error] $($json.subtype)" -ForegroundColor $script:StreamColors.Error
+                            }
+                        }
+                    }
+                }
+                catch {
+                    # Not valid JSON, show as raw output
+                    Write-Host $line -ForegroundColor $script:StreamColors.Text
+                    $resultText += $line + "`n"
+                }
+            }
+        }
+        else {
+            Start-Sleep -Milliseconds $CheckIntervalMs
+            $elapsed += $CheckIntervalMs
+        }
+    }
+    
+    Write-Host ""  # Final newline
+    
+    return @{
+        Success = $true
+        Output = $fullOutput
+        Result = $resultText
+        Error = $null
+    }
+}
+
 $script:SizeThresholds = @{
     WarningSize = 100000    # 100K chars - warning
     LargeSize   = 200000    # 200K chars - serious warning
@@ -239,6 +386,8 @@ function Invoke-AIWithTimeout {
     <#
     .SYNOPSIS
         Execute AI command with timeout
+    .PARAMETER StreamOutput
+        Show real-time output (claude only, requires --verbose)
     #>
     param(
         [Parameter(Mandatory)]
@@ -252,7 +401,9 @@ function Invoke-AIWithTimeout {
         
         [string]$InputFile,
         
-        [int]$TimeoutSeconds = 1200
+        [int]$TimeoutSeconds = 1200,
+        
+        [switch]$StreamOutput
     )
     
     $result = $null
@@ -272,6 +423,7 @@ function Invoke-AIWithTimeout {
                 # - Interactive: claude (starts REPL)
                 # - One-shot: claude "task" 
                 # - Headless: claude -p "prompt" --output-format text
+                # - Streaming: claude -p "prompt" --output-format stream-json --verbose
                 # - Piped: cat content | claude -p "analyze this"
                 
                 # Strategy: Use stdin for content, -p for prompt instruction
@@ -292,16 +444,23 @@ function Invoke-AIWithTimeout {
                 if ($stdinContent) {
                     Write-AIStatus -Level "DEBUG" -Message "Content length: $($stdinContent.Length) chars (via stdin)"
                 }
+                if ($StreamOutput) {
+                    Write-AIStatus -Level "DEBUG" -Message "Stream output: enabled"
+                }
                 
                 # Escape prompt for command line - use temp file for long/complex prompts
                 $tempPromptFile = Join-Path $env:TEMP "hermes-claude-prompt-$(Get-Random).txt"
                 $promptArg | Set-Content -Path $tempPromptFile -Encoding UTF8
                 $escapedPrompt = (Get-Content $tempPromptFile -Raw) -replace '"', '\"'
                 
+                # Build arguments based on stream mode
+                $outputFormat = if ($StreamOutput) { "stream-json" } else { "text" }
+                $verboseFlag = if ($StreamOutput) { " --verbose" } else { "" }
+                
                 # Use Start-Process with timeout for claude
                 $pinfo = New-Object System.Diagnostics.ProcessStartInfo
                 $pinfo.FileName = "claude"
-                $pinfo.Arguments = "-p `"$escapedPrompt`" --dangerously-skip-permissions --output-format text"
+                $pinfo.Arguments = "-p `"$escapedPrompt`" --dangerously-skip-permissions --output-format $outputFormat$verboseFlag"
                 $pinfo.RedirectStandardOutput = $true
                 $pinfo.RedirectStandardError = $true
                 $pinfo.RedirectStandardInput = $true
@@ -319,17 +478,34 @@ function Invoke-AIWithTimeout {
                 }
                 $process.StandardInput.Close()
                 
-                Write-AIStatus -Level "DEBUG" -Message "Waiting for claude process (timeout: $TimeoutSeconds s)..."
-                $exited = Wait-ProcessWithCtrlC -Process $process -TimeoutSeconds $TimeoutSeconds
-                if (-not $exited) {
-                    Write-AIStatus -Level "ERROR" -Message "Process timed out!"
-                    $process.Kill()
-                    Remove-Item $tempPromptFile -Force -ErrorAction SilentlyContinue
-                    throw "AI timeout after $TimeoutSeconds seconds"
+                if ($StreamOutput) {
+                    # Use streaming reader for real-time output
+                    Write-AIStatus -Level "INFO" -Message "Streaming output..."
+                    $streamResult = Read-AIStreamOutput -Process $process -TimeoutSeconds $TimeoutSeconds
+                    
+                    if (-not $streamResult.Success) {
+                        Remove-Item $tempPromptFile -Force -ErrorAction SilentlyContinue
+                        throw "AI execution failed: $($streamResult.Error)"
+                    }
+                    
+                    $result = $streamResult.Result
+                    $stderr = $process.StandardError.ReadToEnd()
+                }
+                else {
+                    # Traditional wait and read
+                    Write-AIStatus -Level "DEBUG" -Message "Waiting for claude process (timeout: $TimeoutSeconds s)..."
+                    $exited = Wait-ProcessWithCtrlC -Process $process -TimeoutSeconds $TimeoutSeconds
+                    if (-not $exited) {
+                        Write-AIStatus -Level "ERROR" -Message "Process timed out!"
+                        $process.Kill()
+                        Remove-Item $tempPromptFile -Force -ErrorAction SilentlyContinue
+                        throw "AI timeout after $TimeoutSeconds seconds"
+                    }
+                    
+                    $result = $process.StandardOutput.ReadToEnd()
+                    $stderr = $process.StandardError.ReadToEnd()
                 }
                 
-                $result = $process.StandardOutput.ReadToEnd()
-                $stderr = $process.StandardError.ReadToEnd()
                 Write-AIStatus -Level "DEBUG" -Message "Process exited with code: $($process.ExitCode)"
                 if ($stderr) {
                     Write-AIStatus -Level "WARN" -Message "Claude stderr: $stderr"
@@ -609,6 +785,8 @@ function Invoke-TaskExecution {
     .DESCRIPTION
         Executes the specified AI provider with prompt content for task execution.
         Returns output without parsing/validation (task mode handles its own analysis).
+    .PARAMETER StreamOutput
+        Show real-time output (claude only)
     #>
     param(
         [Parameter(Mandatory)]
@@ -618,7 +796,9 @@ function Invoke-TaskExecution {
         [Parameter(Mandatory)]
         [string]$PromptContent,
         
-        [int]$TimeoutSeconds = 900
+        [int]$TimeoutSeconds = 900,
+        
+        [switch]$StreamOutput
     )
     
     $result = $null
@@ -632,13 +812,23 @@ function Invoke-TaskExecution {
         $pinfo = New-Object System.Diagnostics.ProcessStartInfo
         $pinfo.RedirectStandardOutput = $true
         $pinfo.RedirectStandardError = $true
+        $pinfo.RedirectStandardInput = $true
         $pinfo.UseShellExecute = $false
         $pinfo.CreateNoWindow = $true
         
         switch ($Provider) {
             "claude" {
                 $pinfo.FileName = "claude"
-                $pinfo.Arguments = "--dangerously-skip-permissions `"$tempPromptFile`""
+                # Read prompt from file and escape for command line
+                $promptContent = Get-Content $tempPromptFile -Raw
+                $escapedPrompt = $promptContent -replace '"', '\"'
+                
+                if ($StreamOutput) {
+                    $pinfo.Arguments = "-p `"$escapedPrompt`" --dangerously-skip-permissions --output-format stream-json --verbose"
+                }
+                else {
+                    $pinfo.Arguments = "-p `"$escapedPrompt`" --dangerously-skip-permissions --output-format text"
+                }
             }
             "droid" {
                 $pinfo.FileName = "droid"
@@ -653,20 +843,39 @@ function Invoke-TaskExecution {
         $process = New-Object System.Diagnostics.Process
         $process.StartInfo = $pinfo
         $process.Start() | Out-Null
+        $process.StandardInput.Close()
         
-        $exited = $process.WaitForExit($TimeoutSeconds * 1000)
-        
-        if (-not $exited) {
-            $process.Kill()
-            return @{
-                Success = $false
-                Error   = "Timeout after $TimeoutSeconds seconds"
-                Output  = $null
+        if ($Provider -eq "claude" -and $StreamOutput) {
+            # Use streaming reader for real-time output
+            $streamResult = Read-AIStreamOutput -Process $process -TimeoutSeconds $TimeoutSeconds
+            
+            if (-not $streamResult.Success) {
+                return @{
+                    Success = $false
+                    Error   = $streamResult.Error
+                    Output  = $streamResult.Output
+                }
             }
+            
+            $result = $streamResult.Result
+            $stderr = $process.StandardError.ReadToEnd()
         }
-        
-        $result = $process.StandardOutput.ReadToEnd()
-        $stderr = $process.StandardError.ReadToEnd()
+        else {
+            # Traditional wait and read
+            $exited = $process.WaitForExit($TimeoutSeconds * 1000)
+            
+            if (-not $exited) {
+                $process.Kill()
+                return @{
+                    Success = $false
+                    Error   = "Timeout after $TimeoutSeconds seconds"
+                    Output  = $null
+                }
+            }
+            
+            $result = $process.StandardOutput.ReadToEnd()
+            $stderr = $process.StandardError.ReadToEnd()
+        }
         
         if ($stderr) {
             Write-AIStatus -Level "WARN" -Message "$Provider stderr: $stderr"
@@ -736,6 +945,8 @@ if ($MyInvocation.ScriptName -match '\.psm1$') {
         'Split-AIOutput',
         'Test-ParsedOutput',
         'Invoke-AIWithRetry',
-        'Write-AIProviderList'
+        'Write-AIProviderList',
+        'Read-AIStreamOutput',
+        'Write-AIStatus'
     )
 }
