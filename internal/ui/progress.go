@@ -129,6 +129,6 @@ func PrintBanner() {
 |  _  |  __/ |  | | | | | |  __/\__ \ 
 |_| |_|\___|_|  |_| |_| |_|\___||___/ 
                                       
-      Autonomous AI Development Loop
+      AI-Powered Application Development
 `)
 }

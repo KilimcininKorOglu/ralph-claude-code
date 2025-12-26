@@ -1,6 +1,6 @@
 # Hermes Autonomous Agent - User Guide
 
-Complete guide to using Hermes, the autonomous AI development loop system.
+Complete guide to using Hermes, the AI-powered autonomous application development system.
 
 ## Table of Contents
 

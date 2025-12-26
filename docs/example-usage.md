@@ -99,7 +99,7 @@ hermes prd .hermes/docs/PRD.md
 |  _  |  __/ |  | | | | | |  __/\__ \
 |_| |_|\___|_|  |_| |_| |_|\___||___/
 
-      Autonomous AI Development Loop
+      AI-Powered Application Development
 
 PRD Parser
 ==========
@@ -219,7 +219,7 @@ hermes run --ai gemini --auto-branch --auto-commit
 |  _  |  __/ |  | | | | | |  __/\__ \
 |_| |_|\___|_|  |_| |_| |_|\___||___/
 
-      Autonomous AI Development Loop
+      AI-Powered Application Development
 
 Task Execution Loop
 ===================
@@ -360,7 +360,7 @@ hermes add "order management with checkout flow"
 |  _  |  __/ |  | | | | | |  __/\__ \
 |_| |_|\___|_|  |_| |_| |_|\___||___/
 
-      Autonomous AI Development Loop
+      AI-Powered Application Development
 
 Feature Add
 ===========

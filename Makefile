@@ -1,4 +1,4 @@
-# Hermes - Autonomous AI Development Loop
+# Hermes - AI-Powered Application Development
 # Makefile for development and build automation
 
 .PHONY: all build build-linux build-linux-arm64 build-windows build-darwin \
@@ -145,7 +145,7 @@ install: build
 # ==================== HELP ====================
 
 help:
-	@echo "Hermes - Autonomous AI Development Loop"
+	@echo "Hermes - AI-Powered Application Development"
 	@echo ""
 	@echo "Usage: make [target]"
 	@echo ""

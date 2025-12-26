@@ -1,7 +1,7 @@
 @echo off
 setlocal enabledelayedexpansion
 
-:: Hermes - Autonomous AI Development Loop
+:: Hermes - AI-Powered Application Development
 :: Build script for Windows
 
 :: Variables
@@ -270,7 +270,7 @@ goto :eof
 
 :help
 echo.
-echo Hermes - Autonomous AI Development Loop
+echo Hermes - AI-Powered Application Development
 echo ========================================
 echo.
 echo Usage: build.bat [command]

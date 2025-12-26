@@ -99,7 +99,7 @@ hermes prd .hermes/docs/PRD.md
 |  _  |  __/ |  | | | | | |  __/\__ \
 |_| |_|\___|_|  |_| |_| |_|\___||___/
 
-      Otonom AI Geliştirme Döngüsü
+      Yapay Zeka Destekli Uygulama Geliştirme
 
 PRD Ayrıştırıcı
 ===============
@@ -219,7 +219,7 @@ hermes run --ai gemini --auto-branch --auto-commit
 |  _  |  __/ |  | | | | | |  __/\__ \
 |_| |_|\___|_|  |_| |_| |_|\___||___/
 
-      Otonom AI Geliştirme Döngüsü
+      Yapay Zeka Destekli Uygulama Geliştirme
 
 Görev Yürütme Döngüsü
 =====================
@@ -360,7 +360,7 @@ hermes add "ödeme akışı ile sipariş yönetimi"
 |  _  |  __/ |  | | | | | |  __/\__ \
 |_| |_|\___|_|  |_| |_| |_|\___||___/
 
-      Otonom AI Geliştirme Döngüsü
+      Yapay Zeka Destekli Uygulama Geliştirme
 
 Özellik Ekleme
 ==============
