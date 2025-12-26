@@ -2,12 +2,27 @@
 
 You are a technical project planner. Analyze the PRD below and create task files.
 
-## Output Rules
+## CRITICAL OUTPUT RULES
 
-1. Output ONLY the file contents - no explanations, no commentary
-2. Each file starts with `### FILE: tasks/XXX-filename.md` marker
-3. Follow the exact format shown in the example below
-4. Create tasks-status.md as the last file
+**YOU MUST OUTPUT THE ACTUAL FILE CONTENTS, NOT A SUMMARY!**
+
+1. DO NOT explain what you did - just output the files
+2. DO NOT summarize - output the actual markdown content
+3. Each file MUST start with `### FILE: tasks/XXX-filename.md` marker
+4. Output the COMPLETE content of each file after its marker
+5. Follow the EXACT format shown in the example below
+6. Create tasks-status.md as the last file
+
+**YOUR OUTPUT MUST LOOK LIKE THIS:**
+```
+### FILE: tasks/001-feature-name.md
+
+# Feature 1: Feature Name
+...actual content...
+
+### FILE: tasks/002-another-feature.md
+...
+```
 
 ## File Naming
 

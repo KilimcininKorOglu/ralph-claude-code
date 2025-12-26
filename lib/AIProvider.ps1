@@ -187,8 +187,8 @@ function Invoke-AIWithTimeout {
         [Parameter(Mandatory)]
         [string]$PromptText,
         
-        [Parameter(Mandatory)]
-        [string]$Content,
+        [AllowEmptyString()]
+        [string]$Content = "",
         
         [string]$InputFile,
         
@@ -291,8 +291,20 @@ function Split-AIOutput {
         [string]$Output
     )
     
+    # Debug: log output length
+    Write-Verbose "Split-AIOutput: Input length = $($Output.Length)"
+    
     $files = @()
     $pattern = '### FILE:\s*(.+\.md)'
+    
+    # Check if pattern exists
+    if ($Output -notmatch $pattern) {
+        Write-Verbose "Split-AIOutput: No FILE markers found in output"
+        # Log first 500 chars for debugging
+        $preview = if ($Output.Length -gt 500) { $Output.Substring(0, 500) + "..." } else { $Output }
+        Write-Verbose "Output preview: $preview"
+        return @()
+    }
     
     $segments = $Output -split $pattern
     
@@ -334,7 +346,7 @@ function Test-ParsedOutput {
         if ($file.FileName -match "tasks-status\.md") {
             $hasStatusFile = $true
         }
-        if ($file.FileName -match "^\d{3}-") {
+        if ($file.FileName -match "\d{3}-.*\.md$") {
             $hasFeatureFile = $true
         }
         
@@ -383,6 +395,10 @@ function Invoke-AIWithRetry {
             $result = Invoke-AIWithTimeout -Provider $Provider `
                 -PromptText $PromptText -Content $Content `
                 -InputFile $InputFile -TimeoutSeconds $TimeoutSeconds
+            
+            # Debug: log result length
+            $resultLen = if ($result) { $result.Length } else { 0 }
+            Write-Host "[DEBUG] AI output length: $resultLen chars" -ForegroundColor Gray
             
             # Validate output
             $files = Split-AIOutput -Output $result
