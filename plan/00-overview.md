@@ -121,6 +121,7 @@ hermes-go/
 | 10 | CLI commands | [10-cli-commands.md](10-cli-commands.md) |
 | 11 | Testing | [11-testing.md](11-testing.md) |
 | 12 | TUI screens | [12-tui-screens.md](12-tui-screens.md) |
+| 13 | Idea to PRD generation (v1.1.0) | [13-idea-to-prd.md](13-idea-to-prd.md) |
 
 ## Estimated Timeline
 
@@ -143,6 +144,9 @@ make install
 
 # Initialize project
 hermes init my-project
+
+# Generate PRD from idea (v1.1.0)
+hermes idea "e-commerce platform"
 
 # Parse PRD
 hermes prd docs/PRD.md
