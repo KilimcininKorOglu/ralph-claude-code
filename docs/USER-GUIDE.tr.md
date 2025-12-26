@@ -1,6 +1,6 @@
 # Hermes Autonomous Agent - Kullanım Kılavuzu
 
-Otonom yapay zeka geliştirme döngüsü sistemi Hermes'in eksiksiz kullanım kılavuzu.
+Yapay zeka destekli otonom uygulama geliştirme sistemi Hermes'in eksiksiz kullanım kılavuzu.
 
 ## İçerik
 
