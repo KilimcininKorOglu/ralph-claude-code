@@ -24,6 +24,7 @@ type runOptions struct {
 	autoBranch bool
 	autoCommit bool
 	autonomous bool
+	pause      bool
 	timeout    int
 	debug      bool
 }
@@ -46,7 +47,8 @@ func NewRunCmd() *cobra.Command {
 
 	cmd.Flags().BoolVar(&opts.autoBranch, "auto-branch", false, "Create feature branches automatically")
 	cmd.Flags().BoolVar(&opts.autoCommit, "auto-commit", false, "Commit on task completion")
-	cmd.Flags().BoolVar(&opts.autonomous, "autonomous", false, "Run without pausing between tasks")
+	cmd.Flags().BoolVar(&opts.autonomous, "autonomous", true, "Run without pausing between tasks")
+	cmd.Flags().BoolVar(&opts.pause, "pause", false, "Pause between tasks (disables autonomous)")
 	cmd.Flags().IntVar(&opts.timeout, "timeout", 300, "AI timeout in seconds")
 	cmd.Flags().BoolVar(&opts.debug, "debug", false, "Enable debug output")
 
@@ -205,8 +207,8 @@ func runExecute(opts *runOptions) error {
 			}
 		}
 
-		// Pause between tasks if not autonomous
-		if !opts.autonomous && analysis.IsComplete {
+		// Pause between tasks if not autonomous or pause flag is set
+		if (opts.pause || !opts.autonomous) && analysis.IsComplete {
 			fmt.Println("\nPress Enter to continue or Ctrl+C to stop...")
 			bufio.NewReader(os.Stdin).ReadBytes('\n')
 		}
