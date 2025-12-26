@@ -1,212 +1,190 @@
-# Hermes for Claude Code
+# Hermes Autonomous Agent
 
-Autonomous AI development loop system for Windows PowerShell. Supports Claude and Droid CLIs with task-driven development, automatic branching, and intelligent resume.
-
-## Documentation
-
-| Document                                   | Description                       |
-|--------------------------------------------|-----------------------------------|
-| [Installation Guide](docs/installation.md) | Step-by-step installation         |
-| [User Guide](docs/USER-GUIDE.md)           | Complete usage documentation      |
-| [Example Usage](docs/example-usage.md)     | Step-by-step walkthrough with PRD |
-| [Sample PRD](docs/sample-prd.md)           | E-commerce platform example PRD   |
+Autonomous AI development loop system written in Go. Supports Claude, Droid, and Gemini CLIs with task-driven development, automatic branching, and circuit breaker protection.
 
 ## Features
 
-### AI Integration
-
-- **Multi-AI CLI Support** - Works with Claude and Droid CLIs
-- **Task-Based AI Selection** - Uses different AI for different tasks (planning=claude, coding=droid)
-- **Auto-Detection** - Automatically finds available AI CLI if not configured
-- **Provider Selection** - Override with `-AI` flag for all commands
-
-### Task Management
-
-- **PRD Parser (`hermes-prd`)** - Converts PRD documents to structured task files
-- **Feature Add (`hermes-add`)** - Add single features inline or from file
-- **Incremental Updates** - Re-run PRD parser without losing progress
-- **ID Continuity** - Feature and Task IDs auto-increment across all files
-
-### Task Mode Execution
-
-- **Automatic Branching** - Creates feature branches (e.g., `feature/F001-authentication`)
-- **Automatic Commits** - Commits on task completion with conventional format
-- **Autonomous Mode** - Runs all tasks/features without pausing
-- **Dependency Tracking** - Respects task dependencies before execution
-
-### Status and Filtering
-
-- **ASCII Status Tables** - Beautiful table display with `hermes -TaskStatus`
-- **Live Monitor** - Real-time dashboard with `hermes-monitor`
-- **Status Filtering** - Filter by COMPLETED, IN_PROGRESS, NOT_STARTED, BLOCKED
-- **Feature/Priority Filtering** - Filter by Feature ID or Priority level
-
-### Resume and Recovery
-
-- **Automatic Resume** - Detects interrupted runs, resumes from checkpoint
-- **Branch Restoration** - Switches to correct feature branch on resume
-- **Progress History** - Tracks task completion with timestamps
-
-### Safety and Control
-
-- **Circuit Breaker** - Detects stagnation (no-progress loops)
-- **Rate Limiting** - Configurable API calls per hour
-- **Max Errors Threshold** - Stops after N consecutive errors
+- **Multi-AI Support** - Claude, Droid, and Gemini CLI providers with auto-detection
+- **PRD Parser** - Convert PRD documents to structured task files
+- **Task Execution Loop** - Autonomous task execution with progress tracking
+- **Auto Git Operations** - Feature branches and conventional commits
+- **Circuit Breaker** - Stagnation detection and recovery
+- **Interactive TUI** - Dashboard, task list, and log viewer
+- **Resume Support** - Continue from where you left off
 
 ## Requirements
 
-- **PowerShell 7+** (not Windows PowerShell 5.1)
-- **Git**
-- **One of:** Claude CLI or Droid CLI
+- Go 1.24+
+- Git
+- One of: Claude CLI, Droid CLI, or Gemini CLI
+
+### AI CLI Installation
+
+```bash
+# Claude CLI
+npm install -g @anthropic-ai/claude-code
+
+# Droid CLI
+curl -fsSL https://app.factory.ai/cli | sh
+
+# Gemini CLI
+npm install -g @google/gemini-cli
+```
+
+## Installation
+
+```bash
+# Clone and build
+git clone https://github.com/YourUsername/hermes.git
+cd hermes
+build.bat          # Windows
+make build         # Linux/macOS
+
+# Binary outputs to bin/hermes-{os}-{arch}[.exe]
+```
 
 ## Quick Start
 
-```powershell
-# Install Hermes
-git clone https://github.com/frankbria/hermes-claude-code.git
-cd hermes-claude-code
-.\install.ps1
-
-# Create a new project
-hermes-setup my-project
+```bash
+# Initialize project
+hermes init my-project
 cd my-project
 
-# Copy PRD and parse to tasks
-copy your-prd.md .hermes/docs/PRD.md
-hermes-prd .hermes/docs/PRD.md
+# Add PRD and parse to tasks
+cp your-prd.md .hermes/docs/PRD.md
+hermes prd .hermes/docs/PRD.md
 
-# Start Task Mode (uses droid for coding by default)
-hermes -TaskMode -AutoBranch -AutoCommit
+# Check status
+hermes status
 
-# Or run fully autonomous
-hermes -TaskMode -AutoBranch -AutoCommit -Autonomous
+# Run task execution
+hermes run --auto-branch --auto-commit
 ```
 
 ## Commands
 
-| Command                                   | Description                |
-|-------------------------------------------|----------------------------|
-| `hermes-setup <name>`                      | Create new project         |
-| `hermes-prd <file>`                        | Parse PRD to task files    |
-| `hermes-add "feature"`                     | Add single feature         |
-| `hermes -TaskMode -AutoBranch -AutoCommit` | Run with full automation   |
-| `hermes -TaskMode -Autonomous`             | Run without pausing        |
-| `hermes -TaskStatus`                       | Show task progress table   |
-| `hermes-monitor`                           | Live monitoring dashboard  |
+| Command              | Description              |
+|----------------------|--------------------------|
+| `hermes init [name]` | Initialize project       |
+| `hermes prd <file>`  | Parse PRD to task files  |
+| `hermes add <feat>`  | Add single feature       |
+| `hermes run`         | Execute task loop        |
+| `hermes status`      | Show task status table   |
+| `hermes task <id>`   | Show task details        |
+| `hermes log`         | View execution logs      |
+| `hermes tui`         | Launch interactive TUI   |
+| `hermes reset`       | Reset circuit breaker    |
 
-## Supported AI Providers
+## Run Options
 
-Hermes uses **task-based AI selection** by default:
-
-| Provider | Command  | Default For | Description           |
-|----------|----------|-------------|-----------------------|
-| Claude   | `claude` | Planning    | PRD parsing, features |
-| Droid    | `droid`  | Coding      | Task execution        |
-
-Configure in `.hermes/config.json`:
-
-```json
-{
-  "ai": {
-    "planning": "claude",
-    "coding": "droid"
-  }
-}
+```bash
+hermes run                          # Auto-detect AI provider
+hermes run --ai claude              # Force Claude
+hermes run --ai droid               # Force Droid
+hermes run --ai gemini              # Force Gemini
+hermes run --auto-branch            # Create feature branches
+hermes run --auto-commit            # Commit on completion
+hermes run --autonomous=false       # Pause between tasks
 ```
 
-Override with `-AI` flag:
+## AI Providers
 
-```powershell
-hermes -TaskMode -AI claude -AutoBranch -AutoCommit
-hermes-prd .hermes/docs/PRD.md -AI droid
-```
+| Provider | Priority | Command  |
+|----------|----------|----------|
+| Claude   | 1        | `claude` |
+| Droid    | 2        | `droid`  |
+| Gemini   | 3        | `gemini` |
+
+Auto-detection tries providers in priority order.
 
 ## Project Structure
 
 ```
 my-project/
-├── .gitignore              # Contains ".hermes/" to exclude from git
-├── .hermes/                # All Hermes files (gitignored)
-│   ├── config.json         # Project configuration
-│   ├── PROMPT.md           # AI prompt file (auto-managed)
+├── .hermes/                # Hermes data (gitignored)
+│   ├── config.json         # Configuration
+│   ├── PROMPT.md           # AI prompt (auto-managed)
 │   ├── tasks/              # Task files
-│   │   ├── 001-feature.md  # Feature with tasks
-│   │   ├── tasks-status.md # Status tracker
-│   │   └── run-state.md    # Resume checkpoint
 │   ├── logs/               # Execution logs
-│   └── docs/               # PRD and documentation
-├── src/                    # Source code (created by AI)
-├── tests/                  # Test files
-└── README.md
+│   └── docs/               # PRD documents
+└── ...                     # Your project files
 ```
 
-## Task Mode Workflow
-
-```
-.hermes/docs/PRD.md -> hermes-prd -> .hermes/tasks/*.md -> hermes -TaskMode -> Implementation
-```
-
-### Task File Format
+## Task File Format
 
 ```markdown
 # Feature 1: User Authentication
-
 **Feature ID:** F001
 **Status:** NOT_STARTED
 
 ### T001: Database Schema
-
 **Status:** NOT_STARTED
 **Priority:** P1
-
-#### Description
-Create users table.
-
-#### Success Criteria
-- [ ] Migration runs
-- [ ] Rollback works
+**Files to Touch:** db/migrations/001_users.sql
+**Dependencies:** None
+**Success Criteria:**
+- Migration runs successfully
+- Rollback works
 ```
 
-### Branch Strategy
+## Configuration
 
+`.hermes/config.json`:
+
+```json
+{
+  "ai": {
+    "planning": "claude",
+    "coding": "claude",
+    "timeout": 300
+  },
+  "taskMode": {
+    "autoBranch": true,
+    "autoCommit": true,
+    "autonomous": true
+  }
+}
 ```
-main
-  └── feature/F001-authentication
-        ├── feat(T001): Database Schema completed
-        ├── feat(T002): Auth API completed
-        └── feat(T003): Tests completed
-```
+
+Priority: CLI flag > Project config > Global config (~/.hermes/config.json) > Defaults
+
+## TUI Keyboard Shortcuts
+
+| Key     | Action                     |
+|---------|----------------------------|
+| 1/2/3/? | Dashboard/Tasks/Logs/Help  |
+| r       | Start execution            |
+| s       | Stop execution             |
+| Shift+R | Refresh                    |
+| j/k     | Scroll                     |
+| q       | Quit                       |
 
 ## Circuit Breaker
 
-Prevents runaway execution:
+Prevents runaway execution when no progress is detected.
 
-| State     | Meaning                          |
-|-----------|----------------------------------|
-| CLOSED    | Normal operation                 |
-| HALF_OPEN | Monitoring (2 no-progress loops) |
-| OPEN      | Halted (3+ no-progress loops)    |
+| State     | Meaning                            |
+|-----------|------------------------------------|
+| CLOSED    | Normal operation                   |
+| HALF_OPEN | Monitoring (2 no-progress loops)   |
+| OPEN      | Halted (requires `hermes reset`)   |
 
-Reset with: `hermes -ResetCircuit`
+## Development
 
-## Testing
+```bash
+# Build
+build.bat              # Windows
+make build             # Linux/macOS
 
-```powershell
-Import-Module Pester -Force
-Invoke-Pester -Path tests/unit/
-```
+# Test
+build.bat test
+make test
 
-## Uninstall
-
-```powershell
-.\install.ps1 -Uninstall
+# Build all platforms
+build.bat build-all
+make build-all-platforms
 ```
 
 ## License
 
-MIT License - See [LICENSE](LICENSE)
-
----
-
-**Version:** 1.1  
-**Last Updated:** 2025-12-26
+MIT License

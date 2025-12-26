@@ -55,14 +55,14 @@ exit /b 1
 :: ==================== BUILD TARGETS ====================
 
 :build
-echo Building Hermes for Windows...
+echo Building Hermes for Windows (amd64)...
 if not exist "%BINARY_DIR%" mkdir "%BINARY_DIR%"
-go build %LDFLAGS% -o "%BINARY_DIR%\%BINARY_NAME%.exe" .\cmd\hermes
+go build %LDFLAGS% -o "%BINARY_DIR%\%BINARY_NAME%-windows-amd64.exe" .\cmd\hermes
 if errorlevel 1 (
     echo Build failed
     exit /b 1
 )
-echo Created: %BINARY_DIR%\%BINARY_NAME%.exe
+echo Created: %BINARY_DIR%\%BINARY_NAME%-windows-amd64.exe
 goto :eof
 
 :: ==================== CROSS-COMPILATION ====================
@@ -230,14 +230,14 @@ goto :eof
 call :build
 if errorlevel 1 exit /b 1
 echo Starting Hermes...
-"%BINARY_DIR%\%BINARY_NAME%.exe" status
+"%BINARY_DIR%\%BINARY_NAME%-windows-amd64.exe" status
 goto :eof
 
 :run-tui
 call :build
 if errorlevel 1 exit /b 1
 echo Starting Hermes TUI...
-"%BINARY_DIR%\%BINARY_NAME%.exe" tui
+"%BINARY_DIR%\%BINARY_NAME%-windows-amd64.exe" tui
 goto :eof
 
 :: ==================== DEPENDENCIES ====================
@@ -262,7 +262,7 @@ goto :eof
 call :build
 if errorlevel 1 exit /b 1
 echo Installing Hermes to GOPATH\bin...
-copy "%BINARY_DIR%\%BINARY_NAME%.exe" "%GOPATH%\bin\"
+copy "%BINARY_DIR%\%BINARY_NAME%-windows-amd64.exe" "%GOPATH%\bin\hermes.exe"
 echo Installed
 goto :eof
 
