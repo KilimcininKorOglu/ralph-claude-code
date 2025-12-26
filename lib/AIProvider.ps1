@@ -520,26 +520,26 @@ function Invoke-AIWithTimeout {
                 $outputFormat = if ($StreamOutput) { "stream-json" } else { "text" }
                 $verboseFlag = if ($StreamOutput) { " --verbose" } else { "" }
                 
-                # Claude CLI: Content piped via stdin, short prompt as argument
-                # Combine instructions and content in stdin since prompt can be very long
+                # Write full input to temp file and tell Claude to read it
+                $tempInputFile = Join-Path $env:TEMP "hermes-claude-input-$(Get-Random).md"
                 $fullInput = @"
-# INSTRUCTIONS (Follow these exactly)
+# INSTRUCTIONS
 
 $promptArg
 
-# CONTENT TO PROCESS (Apply the instructions above to this content)
+# CONTENT TO PROCESS
 
 $stdinContent
 "@
-                Write-AIStatus -Level "DEBUG" -Message "Full input length: $($fullInput.Length) chars"
+                $fullInput | Set-Content -Path $tempInputFile -Encoding UTF8
+                Write-AIStatus -Level "DEBUG" -Message "Input file: $tempInputFile ($($fullInput.Length) chars)"
                 
                 $pinfo = New-Object System.Diagnostics.ProcessStartInfo
                 $pinfo.FileName = "claude"
-                # Short prompt tells Claude to read instructions from stdin
-                $pinfo.Arguments = "-p `"Process the INSTRUCTIONS and CONTENT provided via stdin. Output ONLY what the instructions request, nothing else.`" --dangerously-skip-permissions --output-format $outputFormat$verboseFlag"
+                # Tell Claude to read and process the file
+                $pinfo.Arguments = "`"Read $tempInputFile and follow the INSTRUCTIONS section to process the CONTENT section. Output ONLY what the instructions request.`" --dangerously-skip-permissions --output-format $outputFormat$verboseFlag"
                 $pinfo.RedirectStandardOutput = $true
                 $pinfo.RedirectStandardError = $true
-                $pinfo.RedirectStandardInput = $true
                 $pinfo.UseShellExecute = $false
                 $pinfo.CreateNoWindow = $true
                 
@@ -548,16 +548,13 @@ $stdinContent
                 $process.StartInfo = $pinfo
                 $process.Start() | Out-Null
                 
-                # Send combined instructions+content via stdin
-                $process.StandardInput.Write($fullInput)
-                $process.StandardInput.Close()
-                
                 if ($StreamOutput) {
                     # Use streaming reader for real-time output
                     Write-AIStatus -Level "INFO" -Message "Streaming output..."
                     $streamResult = Read-AIStreamOutput -Process $process -Provider "claude" -TimeoutSeconds $TimeoutSeconds
                     
                     if (-not $streamResult.Success) {
+                        Remove-Item $tempInputFile -Force -ErrorAction SilentlyContinue
                         throw "AI execution failed: $($streamResult.Error)"
                     }
                     
@@ -571,6 +568,7 @@ $stdinContent
                     if (-not $exited) {
                         Write-AIStatus -Level "ERROR" -Message "Process timed out!"
                         $process.Kill()
+                        Remove-Item $tempInputFile -Force -ErrorAction SilentlyContinue
                         throw "AI timeout after $TimeoutSeconds seconds"
                     }
                     
@@ -582,6 +580,9 @@ $stdinContent
                 if ($stderr) {
                     Write-AIStatus -Level "WARN" -Message "Claude stderr: $stderr"
                 }
+                
+                # Cleanup temp file
+                Remove-Item $tempInputFile -Force -ErrorAction SilentlyContinue
             }
             "droid" {
                 # Write prompt to temp file and call droid directly
