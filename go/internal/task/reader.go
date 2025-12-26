@@ -28,11 +28,27 @@ func (r *Reader) HasTasks() bool {
 
 // GetFeatureFiles returns all feature files sorted by name
 func (r *Reader) GetFeatureFiles() ([]string, error) {
-	pattern := filepath.Join(r.tasksDir, "[0-9][0-9][0-9]-*.md")
-	files, err := filepath.Glob(pattern)
-	if err != nil {
-		return nil, err
+	// Try both patterns: XXX-*.md and FXXX-*.md
+	pattern1 := filepath.Join(r.tasksDir, "[0-9][0-9][0-9]-*.md")
+	pattern2 := filepath.Join(r.tasksDir, "F[0-9][0-9][0-9]-*.md")
+
+	files1, _ := filepath.Glob(pattern1)
+	files2, _ := filepath.Glob(pattern2)
+
+	// Merge and deduplicate
+	fileSet := make(map[string]bool)
+	for _, f := range files1 {
+		fileSet[f] = true
 	}
+	for _, f := range files2 {
+		fileSet[f] = true
+	}
+
+	var files []string
+	for f := range fileSet {
+		files = append(files, f)
+	}
+
 	sort.Strings(files)
 	return files, nil
 }
