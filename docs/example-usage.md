@@ -1,4 +1,4 @@
-# Hermes Example Usage
+# Hermes Autonomous Agent - Example Usage
 
 Step-by-step walkthrough of using Hermes to build a project from PRD to completion.
 

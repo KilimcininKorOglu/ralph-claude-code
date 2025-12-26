@@ -1,4 +1,4 @@
-# Hermes User Guide
+# Hermes Autonomous Agent - User Guide
 
 Complete guide to using Hermes, the autonomous AI development loop system.
 
