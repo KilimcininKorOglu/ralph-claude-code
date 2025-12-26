@@ -138,7 +138,7 @@ function Update-TasksStatusFile {
         [string]$BasePath = "."
     )
     
-    $tasksDir = Join-Path $BasePath "tasks"
+    $tasksDir = Join-Path $BasePath ".hermes\tasks"
     $statusFile = Join-Path $tasksDir "tasks-status.md"
     
     if (-not (Test-Path $tasksDir)) {
@@ -256,7 +256,7 @@ function Add-TaskCompletionLog {
         [string]$BasePath = "."
     )
     
-    $tasksDir = Join-Path $BasePath "tasks"
+    $tasksDir = Join-Path $BasePath ".hermes\tasks"
     $runStateFile = Join-Path $tasksDir "run-state.md"
     
     if (-not (Test-Path $tasksDir)) {
@@ -294,7 +294,7 @@ $logEntry
 
 ## Execution Queue
 
-See tasks/*.md for remaining tasks.
+See .hermes/tasks/*.md for remaining tasks.
 
 "@
         $content | Set-Content $runStateFile -Encoding UTF8
@@ -315,7 +315,7 @@ function Update-RunState {
         [string]$BasePath = "."
     )
     
-    $tasksDir = Join-Path $BasePath "tasks"
+    $tasksDir = Join-Path $BasePath ".hermes\tasks"
     $runStateFile = Join-Path $tasksDir "run-state.md"
     
     if (-not (Test-Path $tasksDir)) {
@@ -364,7 +364,7 @@ function Get-RunState {
         [string]$BasePath = "."
     )
     
-    $runStateFile = Join-Path $BasePath "tasks" "run-state.md"
+    $runStateFile = Join-Path $BasePath ".hermes\tasks" "run-state.md"
     
     if (-not (Test-Path $runStateFile)) {
         return $null
@@ -412,7 +412,7 @@ function Set-RunStateCompleted {
         [string]$BasePath = "."
     )
     
-    $tasksDir = Join-Path $BasePath "tasks"
+    $tasksDir = Join-Path $BasePath ".hermes\tasks"
     $runStateFile = Join-Path $tasksDir "run-state.md"
     
     if (Test-Path $runStateFile) {
@@ -505,7 +505,7 @@ function Add-ErrorLogEntry {
         [string]$BasePath = "."
     )
     
-    $runStateFile = Join-Path $BasePath "tasks" "run-state.md"
+    $runStateFile = Join-Path $BasePath ".hermes\tasks" "run-state.md"
     
     if (-not (Test-Path $runStateFile)) {
         return
@@ -549,7 +549,7 @@ function Update-RunStateProgress {
         [string]$BasePath = "."
     )
     
-    $runStateFile = Join-Path $BasePath "tasks" "run-state.md"
+    $runStateFile = Join-Path $BasePath ".hermes\tasks" "run-state.md"
     
     if (-not (Test-Path $runStateFile)) {
         return

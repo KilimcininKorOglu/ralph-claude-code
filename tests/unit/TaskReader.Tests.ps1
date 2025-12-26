@@ -10,7 +10,8 @@ $lib = Join-Path (Split-Path -Parent (Split-Path -Parent $here)) "lib"
 function New-TestTasksDirectory {
     param([string]$BasePath)
     
-    $tasksDir = Join-Path $BasePath "tasks"
+    $hermesDir = Join-Path $BasePath ".hermes"
+    $tasksDir = Join-Path $hermesDir "tasks"
     New-Item -ItemType Directory -Path $tasksDir -Force | Out-Null
     
     $featureContent = @"
@@ -138,7 +139,7 @@ Describe "TaskReader Module" {
         It "Parses feature ID correctly" {
             $testDir = Join-Path $env:TEMP "hermes-tr-test-$(Get-Random)"
             New-TestTasksDirectory -BasePath $testDir
-            $tasksDir = Join-Path $testDir "tasks"
+            $tasksDir = Join-Path $testDir ".hermes\tasks"
             
             $feature = Read-FeatureFile -FilePath (Join-Path $tasksDir "001-user-registration.md")
             $feature.FeatureId | Should Be "F001"
@@ -149,7 +150,7 @@ Describe "TaskReader Module" {
         It "Parses feature name correctly" {
             $testDir = Join-Path $env:TEMP "hermes-tr-test-$(Get-Random)"
             New-TestTasksDirectory -BasePath $testDir
-            $tasksDir = Join-Path $testDir "tasks"
+            $tasksDir = Join-Path $testDir ".hermes\tasks"
             
             $feature = Read-FeatureFile -FilePath (Join-Path $tasksDir "001-user-registration.md")
             $feature.FeatureName | Should Be "User Registration"
@@ -160,7 +161,7 @@ Describe "TaskReader Module" {
         It "Parses feature status correctly" {
             $testDir = Join-Path $env:TEMP "hermes-tr-test-$(Get-Random)"
             New-TestTasksDirectory -BasePath $testDir
-            $tasksDir = Join-Path $testDir "tasks"
+            $tasksDir = Join-Path $testDir ".hermes\tasks"
             
             $feature = Read-FeatureFile -FilePath (Join-Path $tasksDir "001-user-registration.md")
             $feature.Status | Should Be "IN_PROGRESS"
@@ -171,7 +172,7 @@ Describe "TaskReader Module" {
         It "Parses tasks correctly" {
             $testDir = Join-Path $env:TEMP "hermes-tr-test-$(Get-Random)"
             New-TestTasksDirectory -BasePath $testDir
-            $tasksDir = Join-Path $testDir "tasks"
+            $tasksDir = Join-Path $testDir ".hermes\tasks"
             
             $feature = Read-FeatureFile -FilePath (Join-Path $tasksDir "001-user-registration.md")
             $feature.Tasks.Count | Should Be 3
@@ -285,7 +286,7 @@ Describe "TaskReader Module" {
         
         It "Returns null when all tasks completed" {
             $testDir = Join-Path $env:TEMP "hermes-tr-test-$(Get-Random)"
-            $tasksDir = Join-Path $testDir "tasks"
+            $tasksDir = Join-Path $testDir ".hermes\tasks"
             New-Item -ItemType Directory -Path $tasksDir -Force | Out-Null
             
             $content = @"

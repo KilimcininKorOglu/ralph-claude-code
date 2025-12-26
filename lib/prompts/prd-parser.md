@@ -8,19 +8,19 @@ You are a technical project planner. Analyze the PRD below and create task files
 
 1. DO NOT explain what you did - just output the files
 2. DO NOT summarize - output the actual markdown content
-3. Each file MUST start with `### FILE: tasks/XXX-filename.md` marker
+3. Each file MUST start with `### FILE: .hermes/tasks/XXX-filename.md` marker
 4. Output the COMPLETE content of each file after its marker
 5. Follow the EXACT format shown in the example below
 6. Create tasks-status.md as the last file
 
 **YOUR OUTPUT MUST LOOK LIKE THIS:**
 ```
-### FILE: tasks/001-feature-name.md
+### FILE: .hermes/tasks/001-feature-name.md
 
 # Feature 1: Feature Name
 ...actual content...
 
-### FILE: tasks/002-another-feature.md
+### FILE: .hermes/tasks/002-another-feature.md
 ...
 ```
 
@@ -90,7 +90,7 @@ You are a technical project planner. Analyze the PRD below and create task files
 
 ## EXAMPLE OUTPUT FORMAT
 
-### FILE: tasks/001-user-authentication.md
+### FILE: .hermes/tasks/001-user-authentication.md
 
 # Feature 1: User Authentication
 
@@ -241,7 +241,7 @@ Unit tests for authentication flow.
 
 ---
 
-### FILE: tasks/tasks-status.md
+### FILE: .hermes/tasks/tasks-status.md
 
 # Task Status Tracker
 
@@ -280,4 +280,4 @@ Unit tests for authentication flow.
 
 ---
 
-**REMINDER: Your output MUST contain the COMPLETE file contents with `### FILE: tasks/XXX-filename.md` markers. DO NOT summarize. Output the actual markdown content for each file.**
+**REMINDER: Your output MUST contain the COMPLETE file contents with `### FILE: .hermes/tasks/XXX-filename.md` markers. DO NOT summarize. Output the actual markdown content for each file.**

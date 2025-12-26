@@ -26,13 +26,13 @@ param(
 )
 
 # Configuration
-$script:StatusFile = "status.json"
-$script:ProgressFile = "progress.json"
-$script:LogFile = "logs\Hermes.log"
-$script:CallCountFile = ".call_count"
-$script:CircuitBreakerFile = ".circuit_breaker_state"
-$script:RunStateFile = "tasks\run-state.md"
-$script:TasksDir = "tasks"
+$script:StatusFile = ".hermes\status.json"
+$script:ProgressFile = ".hermes\progress.json"
+$script:LogFile = ".hermes\logs\Hermes.log"
+$script:CallCountFile = ".hermes\.call_count"
+$script:CircuitBreakerFile = ".hermes\.circuit_breaker_state"
+$script:RunStateFile = ".hermes\tasks\run-state.md"
+$script:TasksDir = ".hermes\tasks"
 
 # Import TaskReader module
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -494,7 +494,7 @@ function Start-Monitor {
     if (-not $isHermesProject) {
         Write-Host ""
         Write-Host "Warning: This doesn't appear to be a Hermes project directory." -ForegroundColor Yellow
-        Write-Host "Looking for: PROMPT.md, status.json, or tasks/" -ForegroundColor Gray
+        Write-Host "Looking for: .hermes/PROMPT.md, .hermes/status.json, or .hermes/tasks/" -ForegroundColor Gray
         Write-Host "Current directory: $(Get-Location)" -ForegroundColor Gray
         Write-Host ""
         Write-Host "The monitor will still run, but may not show useful information." -ForegroundColor Yellow

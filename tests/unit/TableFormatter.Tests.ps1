@@ -85,7 +85,7 @@ Describe "TableFormatter Module" {
     Context "Get-FilteredTasks" {
         BeforeEach {
             $testDir = Join-Path $env:TEMP "Hermes-test-$(Get-Random)"
-            New-Item -ItemType Directory -Path "$testDir\tasks" -Force | Out-Null
+            New-Item -ItemType Directory -Path "$testDir\.hermes\tasks" -Force | Out-Null
             Push-Location $testDir
             
             $content = @"
@@ -109,7 +109,7 @@ Describe "TableFormatter Module" {
 **Status:** NOT_STARTED
 **Priority:** P1
 "@
-            Set-Content -Path "tasks\001-test.md" -Value $content
+            Set-Content -Path ".hermes\tasks\001-test.md" -Value $content
         }
         
         AfterEach {

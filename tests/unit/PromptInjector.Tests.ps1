@@ -11,6 +11,7 @@ Describe "PromptInjector Module" {
     BeforeEach {
         $script:testDir = Join-Path $env:TEMP "hermes-prompt-test-$(Get-Random)"
         New-Item -ItemType Directory -Path $script:testDir -Force | Out-Null
+        New-Item -ItemType Directory -Path (Join-Path $script:testDir ".hermes") -Force | Out-Null
         
         $promptContent = @"
 # Project Instructions
@@ -21,7 +22,7 @@ This is the main prompt file.
 
 Follow best practices.
 "@
-        Set-Content -Path (Join-Path $script:testDir "PROMPT.md") -Value $promptContent -Encoding UTF8
+        Set-Content -Path (Join-Path $script:testDir ".hermes\PROMPT.md") -Value $promptContent -Encoding UTF8
         
         $script:testTask = @{
             TaskId = "T001"
@@ -43,7 +44,7 @@ Follow best practices.
     Context "Get-PromptPath" {
         It "Returns correct path" {
             $path = Get-PromptPath -BasePath $script:testDir
-            $path | Should Be (Join-Path $script:testDir "PROMPT.md")
+            $path | Should Be (Join-Path $script:testDir ".hermes\PROMPT.md")
         }
     }
     
@@ -94,7 +95,7 @@ Follow best practices.
         It "Adds task section to PROMPT.md" {
             Add-TaskToPrompt -Task $script:testTask -BasePath $script:testDir | Should Be $true
             
-            $content = Get-Content (Join-Path $script:testDir "PROMPT.md") -Raw
+            $content = Get-Content (Join-Path $script:testDir ".hermes\PROMPT.md") -Raw
             $content | Should Match "HERMES_TASK_START"
             $content | Should Match "T001"
         }
@@ -116,7 +117,7 @@ Follow best practices.
             Remove-TaskFromPrompt -BasePath $script:testDir
             Add-TaskToPrompt -Task $newTask -BasePath $script:testDir | Should Be $true
             
-            $content = Get-Content (Join-Path $script:testDir "PROMPT.md") -Raw
+            $content = Get-Content (Join-Path $script:testDir ".hermes\PROMPT.md") -Raw
             $content | Should Match "T002"
             ([regex]::Matches($content, "HERMES_TASK_START")).Count | Should Be 1
         }
@@ -143,7 +144,7 @@ Follow best practices.
             Add-TaskToPrompt -Task $script:testTask -BasePath $script:testDir
             Remove-TaskFromPrompt -BasePath $script:testDir | Should Be $true
             
-            $content = Get-Content (Join-Path $script:testDir "PROMPT.md") -Raw
+            $content = Get-Content (Join-Path $script:testDir ".hermes\PROMPT.md") -Raw
             $content | Should Not Match "HERMES_TASK_START"
         }
         
@@ -151,7 +152,7 @@ Follow best practices.
             Add-TaskToPrompt -Task $script:testTask -BasePath $script:testDir
             Remove-TaskFromPrompt -BasePath $script:testDir
             
-            $content = Get-Content (Join-Path $script:testDir "PROMPT.md") -Raw
+            $content = Get-Content (Join-Path $script:testDir ".hermes\PROMPT.md") -Raw
             $content | Should Match "Project Instructions"
         }
     }
@@ -183,7 +184,7 @@ Follow best practices.
             
             Restore-Prompt -BackupPath $backupPath -BasePath $script:testDir | Should Be $true
             
-            $content = Get-Content (Join-Path $script:testDir "PROMPT.md") -Raw
+            $content = Get-Content (Join-Path $script:testDir ".hermes\PROMPT.md") -Raw
             $content | Should Match "Project Instructions"
         }
     }

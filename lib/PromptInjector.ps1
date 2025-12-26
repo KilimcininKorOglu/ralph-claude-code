@@ -21,7 +21,7 @@ function Get-PromptPath {
         [string]$BasePath = "."
     )
     
-    return Join-Path $BasePath "PROMPT.md"
+    return Join-Path $BasePath ".hermes\PROMPT.md"
 }
 
 function Test-PromptExists {

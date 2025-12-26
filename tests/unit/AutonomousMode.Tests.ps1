@@ -54,7 +54,7 @@ Describe "Autonomous Mode Functions" {
     Context "Test-FeatureCompleted" {
         BeforeEach {
             $testDir = Join-Path $env:TEMP "Hermes-test-$(Get-Random)"
-            New-Item -ItemType Directory -Path "$testDir\tasks" -Force | Out-Null
+            New-Item -ItemType Directory -Path "$testDir\.hermes\tasks" -Force | Out-Null
             Push-Location $testDir
         }
         
@@ -74,7 +74,7 @@ Describe "Autonomous Mode Functions" {
 
 **Status:** NOT_STARTED
 "@
-            Set-Content -Path "tasks\001-test.md" -Value $content
+            Set-Content -Path ".hermes\tasks\001-test.md" -Value $content
             Test-FeatureCompleted -FeatureId "F001" | Should Be $false
         }
         
@@ -93,7 +93,7 @@ Describe "Autonomous Mode Functions" {
 
 **Status:** COMPLETED
 "@
-            Set-Content -Path "tasks\001-test.md" -Value $content
+            Set-Content -Path ".hermes\tasks\001-test.md" -Value $content
             Test-FeatureCompleted -FeatureId "F001" | Should Be $true
         }
         
@@ -112,7 +112,7 @@ Describe "Autonomous Mode Functions" {
 
 **Status:** NOT_STARTED
 "@
-            Set-Content -Path "tasks\001-test.md" -Value $content
+            Set-Content -Path ".hermes\tasks\001-test.md" -Value $content
             Test-FeatureCompleted -FeatureId "F001" | Should Be $false
         }
     }

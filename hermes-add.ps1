@@ -19,7 +19,7 @@ param(
     
     [switch]$DryRun,
     
-    [string]$OutputDir = "tasks",
+    [string]$OutputDir = ".hermes\tasks",
     
     [int]$Timeout = 300,
     

@@ -7,7 +7,7 @@
 #>
 
 $script:LogConfig = @{
-    LogDir = "logs"
+    LogDir = ".hermes\logs"
     DateFormat = "yyyy-MM-dd HH:mm:ss"
     FileNameFormat = "yyyy-MM-dd"
 }

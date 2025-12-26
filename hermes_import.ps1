@@ -61,7 +61,7 @@ function Show-Help {
     Write-Host "    1. Reads your PRD/specification file"
     Write-Host "    2. Uses Claude Code to analyze and convert content"
     Write-Host "    3. Creates a Hermes project with:"
-    Write-Host "       - PROMPT.md (development instructions)"
+    Write-Host "       - .hermes/PROMPT.md (development instructions)"
     Write-Host "       - @fix_plan.md (prioritized tasks)"
     Write-Host "       - specs/requirements.md (technical specs)"
     Write-Host ""
@@ -383,17 +383,9 @@ function New-HermesProjectFromPRD {
         
         # Create .gitignore
         $gitignore = @"
-.call_count
-.last_reset
-.exit_signals
-.circuit_breaker_state
-.circuit_breaker_history
-.response_analysis
-.last_output_length
-progress.json
-status.json
-logs/
-docs/generated/
+# Hermes folder (AI workspace)
+.hermes/
+
 node_modules/
 __pycache__/
 *.pyc
@@ -430,7 +422,7 @@ __pycache__/
         Write-Host "Project '$ProjectName' created successfully!" -ForegroundColor Green
         Write-Host ""
         Write-Host "Generated files:" -ForegroundColor Cyan
-        Write-Host "  - PROMPT.md          (Hermes development instructions)"
+        Write-Host "  - .hermes/PROMPT.md  (Hermes development instructions)"
         Write-Host "  - @fix_plan.md       (Prioritized task list)"
         Write-Host "  - specs/requirements.md (Technical requirements)"
         Write-Host "  - @AGENT.md          (Build/run instructions)"

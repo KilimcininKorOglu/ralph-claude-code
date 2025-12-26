@@ -10,7 +10,7 @@ Describe "Resume Mode Functions" {
     Context "Test-ShouldResume" {
         BeforeEach {
             $testDir = Join-Path $env:TEMP "Hermes-resume-test-$(Get-Random)"
-            New-Item -ItemType Directory -Path "$testDir\tasks" -Force | Out-Null
+            New-Item -ItemType Directory -Path "$testDir\.hermes\tasks" -Force | Out-Null
             Push-Location $testDir
         }
         
@@ -33,7 +33,7 @@ Describe "Resume Mode Functions" {
                 "",
                 "- **Current Task:** T001"
             )
-            Set-Content -Path "tasks\run-state.md" -Value ($lines -join "`r`n")
+            Set-Content -Path ".hermes\tasks\run-state.md" -Value ($lines -join "`r`n")
             
             Test-ShouldResume -BasePath "." | Should Be $false
         }
@@ -49,7 +49,7 @@ Describe "Resume Mode Functions" {
                 "- **Current Task:** T003",
                 "- **Next Task:** T004"
             )
-            Set-Content -Path "tasks\run-state.md" -Value ($lines -join "`r`n")
+            Set-Content -Path ".hermes\tasks\run-state.md" -Value ($lines -join "`r`n")
             
             Test-ShouldResume -BasePath "." | Should Be $true
         }
@@ -58,7 +58,7 @@ Describe "Resume Mode Functions" {
     Context "Get-ResumeInfo" {
         BeforeEach {
             $testDir = Join-Path $env:TEMP "Hermes-resume-test-$(Get-Random)"
-            New-Item -ItemType Directory -Path "$testDir\tasks" -Force | Out-Null
+            New-Item -ItemType Directory -Path "$testDir\.hermes\tasks" -Force | Out-Null
             Push-Location $testDir
         }
         
@@ -85,7 +85,7 @@ Describe "Resume Mode Functions" {
                 "- **Current Task:** T003",
                 "- **Next Task:** T004"
             )
-            Set-Content -Path "tasks\run-state.md" -Value ($lines -join "`r`n")
+            Set-Content -Path ".hermes\tasks\run-state.md" -Value ($lines -join "`r`n")
             
             $info = Get-ResumeInfo -BasePath "."
             $info | Should Not Be $null
@@ -97,7 +97,7 @@ Describe "Resume Mode Functions" {
     Context "Get-ExecutionQueue" {
         BeforeEach {
             $testDir = Join-Path $env:TEMP "Hermes-queue-test-$(Get-Random)"
-            New-Item -ItemType Directory -Path "$testDir\tasks" -Force | Out-Null
+            New-Item -ItemType Directory -Path "$testDir\.hermes\tasks" -Force | Out-Null
             Push-Location $testDir
             
             $lines = @(
@@ -120,7 +120,7 @@ Describe "Resume Mode Functions" {
                 "**Status:** NOT_STARTED",
                 "**Priority:** P1"
             )
-            Set-Content -Path "tasks\001-test.md" -Value ($lines -join "`r`n")
+            Set-Content -Path ".hermes\tasks\001-test.md" -Value ($lines -join "`r`n")
         }
         
         AfterEach {

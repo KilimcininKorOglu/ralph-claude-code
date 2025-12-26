@@ -17,8 +17,8 @@ Describe "FeatureAnalyzer Module" {
         
         It "Should return 0 when tasks directory is empty" {
             $testDir = Join-Path $TestDrive "empty-tasks"
-            $tasksDir = Join-Path $testDir "tasks"
-            New-Item -ItemType Directory -Path $tasksDir -Force | Out-Null
+            $tasksDir = Join-Path $testDir ".hermes\tasks"
+            New-Item -ItemType Directory -Path (Join-Path $testDir ".hermes\tasks") -Force | Out-Null
             
             $result = Get-HighestFeatureId -BasePath $testDir
             $result | Should Be 0
@@ -26,8 +26,8 @@ Describe "FeatureAnalyzer Module" {
         
         It "Should find highest Feature ID from files" {
             $testDir = Join-Path $TestDrive "with-tasks"
-            $tasksDir = Join-Path $testDir "tasks"
-            New-Item -ItemType Directory -Path $tasksDir -Force | Out-Null
+            $tasksDir = Join-Path $testDir ".hermes\tasks"
+            New-Item -ItemType Directory -Path (Join-Path $testDir ".hermes\tasks") -Force | Out-Null
             
             # Create test files
             "**Feature ID:** F001" | Set-Content (Join-Path $tasksDir "001-test.md")
@@ -50,8 +50,8 @@ Describe "FeatureAnalyzer Module" {
         
         It "Should find highest Task ID across files" {
             $testDir = Join-Path $TestDrive "with-task-ids"
-            $tasksDir = Join-Path $testDir "tasks"
-            New-Item -ItemType Directory -Path $tasksDir -Force | Out-Null
+            $tasksDir = Join-Path $testDir ".hermes\tasks"
+            New-Item -ItemType Directory -Path (Join-Path $testDir ".hermes\tasks") -Force | Out-Null
             
             $content1 = @"
 # Feature 1
@@ -86,8 +86,8 @@ Describe "FeatureAnalyzer Module" {
         
         It "Should continue from existing IDs" {
             $testDir = Join-Path $TestDrive "existing-project"
-            $tasksDir = Join-Path $testDir "tasks"
-            New-Item -ItemType Directory -Path $tasksDir -Force | Out-Null
+            $tasksDir = Join-Path $testDir ".hermes\tasks"
+            New-Item -ItemType Directory -Path (Join-Path $testDir ".hermes\tasks") -Force | Out-Null
             
             $content = @"
 **Feature ID:** F002

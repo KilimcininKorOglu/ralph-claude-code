@@ -17,7 +17,7 @@ function Get-HighestFeatureId {
         [string]$BasePath = "."
     )
     
-    $tasksDir = Join-Path $BasePath "tasks"
+    $tasksDir = Join-Path $BasePath ".hermes\tasks"
     
     if (-not (Test-Path $tasksDir)) {
         return 0
@@ -51,7 +51,7 @@ function Get-HighestTaskId {
         [string]$BasePath = "."
     )
     
-    $tasksDir = Join-Path $BasePath "tasks"
+    $tasksDir = Join-Path $BasePath ".hermes\tasks"
     
     if (-not (Test-Path $tasksDir)) {
         return 0
@@ -311,7 +311,7 @@ function Write-FeatureFile {
         [Parameter(Mandatory)]
         [hashtable]$Feature,
         
-        [string]$OutputDir = "tasks"
+        [string]$OutputDir = ".hermes\tasks"
     )
     
     # Create directory if not exists
@@ -338,7 +338,7 @@ function Update-TasksStatus {
         [Parameter(Mandatory)]
         [hashtable]$Feature,
         
-        [string]$OutputDir = "tasks"
+        [string]$OutputDir = ".hermes\tasks"
     )
     
     $statusFile = Join-Path $OutputDir "tasks-status.md"

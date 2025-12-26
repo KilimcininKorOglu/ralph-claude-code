@@ -11,9 +11,10 @@ Describe "CircuitBreaker Module" {
     BeforeEach {
         $script:testDir = Join-Path $env:TEMP "hermes-circuit-test-$(Get-Random)"
         New-Item -ItemType Directory -Path $script:testDir -Force | Out-Null
+        New-Item -ItemType Directory -Path (Join-Path $script:testDir ".hermes") -Force | Out-Null
         Push-Location $script:testDir
-        Remove-Item ".circuit_breaker_state" -ErrorAction SilentlyContinue
-        Remove-Item ".circuit_breaker_history" -ErrorAction SilentlyContinue
+        Remove-Item ".hermes\.circuit_breaker_state" -ErrorAction SilentlyContinue
+        Remove-Item ".hermes\.circuit_breaker_history" -ErrorAction SilentlyContinue
     }
     
     AfterEach {
@@ -24,12 +25,12 @@ Describe "CircuitBreaker Module" {
     Context "Initialize-CircuitBreaker" {
         It "should create state file on initialization" {
             Initialize-CircuitBreaker
-            Test-Path ".circuit_breaker_state" | Should Be $true
+            Test-Path ".hermes\.circuit_breaker_state" | Should Be $true
         }
         
         It "should create history file on initialization" {
             Initialize-CircuitBreaker
-            Test-Path ".circuit_breaker_history" | Should Be $true
+            Test-Path ".hermes\.circuit_breaker_history" | Should Be $true
         }
         
         It "should initialize state to CLOSED" {
@@ -40,12 +41,12 @@ Describe "CircuitBreaker Module" {
         
         It "should initialize consecutive_no_progress to 0" {
             Initialize-CircuitBreaker
-            $data = Get-Content ".circuit_breaker_state" -Raw | ConvertFrom-Json
+            $data = Get-Content ".hermes\.circuit_breaker_state" -Raw | ConvertFrom-Json
             $data.consecutive_no_progress | Should Be 0
         }
         
         It "should handle corrupted state file" {
-            "invalid json{{{" | Set-Content ".circuit_breaker_state"
+            "invalid json{{{" | Set-Content ".hermes\.circuit_breaker_state"
             Initialize-CircuitBreaker
             $state = Get-CircuitState
             $state | Should Be "CLOSED"
@@ -62,7 +63,7 @@ Describe "CircuitBreaker Module" {
             @{
                 state = "HALF_OPEN"
                 consecutive_no_progress = 2
-            } | ConvertTo-Json | Set-Content ".circuit_breaker_state"
+            } | ConvertTo-Json | Set-Content ".hermes\.circuit_breaker_state"
             
             $state = Get-CircuitState
             $state | Should Be "HALF_OPEN"
@@ -79,7 +80,7 @@ Describe "CircuitBreaker Module" {
             @{
                 state = "HALF_OPEN"
                 consecutive_no_progress = 2
-            } | ConvertTo-Json | Set-Content ".circuit_breaker_state"
+            } | ConvertTo-Json | Set-Content ".hermes\.circuit_breaker_state"
             
             Test-CanExecute | Should Be $true
         }
@@ -88,7 +89,7 @@ Describe "CircuitBreaker Module" {
             @{
                 state = "OPEN"
                 consecutive_no_progress = 3
-            } | ConvertTo-Json | Set-Content ".circuit_breaker_state"
+            } | ConvertTo-Json | Set-Content ".hermes\.circuit_breaker_state"
             
             Test-CanExecute | Should Be $false
         }
@@ -169,7 +170,7 @@ Describe "CircuitBreaker Module" {
             
             Add-LoopResult -LoopNumber 1 -FilesChanged 1 -HasErrors $true
             
-            $data = Get-Content ".circuit_breaker_state" -Raw | ConvertFrom-Json
+            $data = Get-Content ".hermes\.circuit_breaker_state" -Raw | ConvertFrom-Json
             $data.consecutive_same_error | Should Be 1
         }
         
@@ -179,7 +180,7 @@ Describe "CircuitBreaker Module" {
             Add-LoopResult -LoopNumber 1 -FilesChanged 1 -HasErrors $true
             Add-LoopResult -LoopNumber 2 -FilesChanged 1 -HasErrors $false
             
-            $data = Get-Content ".circuit_breaker_state" -Raw | ConvertFrom-Json
+            $data = Get-Content ".hermes\.circuit_breaker_state" -Raw | ConvertFrom-Json
             $data.consecutive_same_error | Should Be 0
         }
     }
@@ -206,7 +207,7 @@ Describe "CircuitBreaker Module" {
             
             Reset-CircuitBreaker
             
-            $data = Get-Content ".circuit_breaker_state" -Raw | ConvertFrom-Json
+            $data = Get-Content ".hermes\.circuit_breaker_state" -Raw | ConvertFrom-Json
             $data.consecutive_no_progress | Should Be 0
             $data.consecutive_same_error | Should Be 0
         }
@@ -216,7 +217,7 @@ Describe "CircuitBreaker Module" {
             
             Reset-CircuitBreaker -Reason "Manual test reset"
             
-            $data = Get-Content ".circuit_breaker_state" -Raw | ConvertFrom-Json
+            $data = Get-Content ".hermes\.circuit_breaker_state" -Raw | ConvertFrom-Json
             $data.reason | Should Be "Manual test reset"
         }
     }
@@ -228,7 +229,7 @@ Describe "CircuitBreaker Module" {
             Add-LoopResult -LoopNumber 1 -FilesChanged 0
             Add-LoopResult -LoopNumber 2 -FilesChanged 0
             
-            $history = Get-Content ".circuit_breaker_history" -Raw | ConvertFrom-Json
+            $history = Get-Content ".hermes\.circuit_breaker_history" -Raw | ConvertFrom-Json
             ($history.Count -gt 0) | Should Be $true
             $history[-1].to_state | Should Be "HALF_OPEN"
         }
@@ -239,7 +240,7 @@ Describe "CircuitBreaker Module" {
             Add-LoopResult -LoopNumber 1 -FilesChanged 0
             Add-LoopResult -LoopNumber 2 -FilesChanged 0
             
-            $history = Get-Content ".circuit_breaker_history" -Raw | ConvertFrom-Json
+            $history = Get-Content ".hermes\.circuit_breaker_history" -Raw | ConvertFrom-Json
             $history[-1].loop | Should Be 2
         }
     }
@@ -255,7 +256,7 @@ Describe "CircuitBreaker Module" {
                 state = "HALF_OPEN"
                 consecutive_no_progress = 2
                 reason = "Monitoring"
-            } | ConvertTo-Json | Set-Content ".circuit_breaker_state"
+            } | ConvertTo-Json | Set-Content ".hermes\.circuit_breaker_state"
             
             Test-ShouldHalt | Should Be $false
         }
@@ -268,7 +269,7 @@ Describe "CircuitBreaker Module" {
                 current_loop = 3
                 last_progress_loop = 0
                 total_opens = 1
-            } | ConvertTo-Json | Set-Content ".circuit_breaker_state"
+            } | ConvertTo-Json | Set-Content ".hermes\.circuit_breaker_state"
             
             Test-ShouldHalt | Should Be $true
         }

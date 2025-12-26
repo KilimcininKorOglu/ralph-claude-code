@@ -24,8 +24,10 @@ $script:DefaultConfig = @{
         timeoutMinutes = 15
     }
     paths = @{
-        tasksDir = "tasks"
-        logsDir = "logs"
+        hermesDir = ".hermes"
+        tasksDir = ".hermes\tasks"
+        logsDir = ".hermes\logs"
+        docsDir = ".hermes\docs"
     }
 }
 
@@ -53,7 +55,7 @@ function Get-ProjectConfigPath {
         Base path for project (default: current directory)
     #>
     param([string]$BasePath = ".")
-    return Join-Path $BasePath "hermes.config.json"
+    return Join-Path $BasePath ".hermes\config.json"
 }
 
 function Merge-ConfigHashtable {
@@ -291,6 +293,12 @@ function Initialize-ProjectConfig {
     
     if ((Test-Path $configPath) -and -not $Force) {
         return $false
+    }
+    
+    # Ensure .hermes directory exists
+    $hermesDir = Join-Path $BasePath ".hermes"
+    if (-not (Test-Path $hermesDir)) {
+        New-Item -ItemType Directory -Path $hermesDir -Force | Out-Null
     }
     
     # Project config has same structure as global config

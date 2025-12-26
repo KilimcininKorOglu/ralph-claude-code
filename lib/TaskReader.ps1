@@ -9,7 +9,7 @@
 #>
 
 # Configuration
-$script:TasksDir = "tasks"
+$script:TasksDir = ".hermes\tasks"
 $script:TaskFilePattern = "^\d{3}-.*\.md$"
 $script:StatusFile = "tasks-status.md"
 

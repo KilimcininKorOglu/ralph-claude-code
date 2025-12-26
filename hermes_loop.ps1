@@ -39,7 +39,7 @@ param(
     [int]$Calls = 100,
     
     [Alias('p')]
-    [string]$Prompt = "PROMPT.md",
+    [string]$Prompt = ".hermes\PROMPT.md",
     
     [Alias('s')]
     [switch]$Status,
@@ -61,7 +61,7 @@ param(
     # Task Mode Parameters
     [switch]$TaskMode,
     
-    [string]$TasksDir = "tasks",
+    [string]$TasksDir = ".hermes\tasks",
     
     [switch]$AutoBranch,
     
@@ -140,7 +140,7 @@ $script:Config = @{
     MaxConsecutiveDoneSignals = 2
     # Task Mode Config
     TaskMode = $TaskMode
-    TasksDir = Get-ConfigValue -Key "paths.tasksDir" -Override $(if ($TasksDir -ne "tasks") { $TasksDir } else { $null })
+    TasksDir = Get-ConfigValue -Key "paths.tasksDir" -Override $(if ($TasksDir -ne ".hermes\tasks") { $TasksDir } else { $null })
     AutoBranch = if ($AutoBranch) { $true } else { Get-ConfigValue -Key "taskMode.autoBranch" }
     AutoCommit = if ($AutoCommit) { $true } else { Get-ConfigValue -Key "taskMode.autoCommit" }
     StartFromTask = $StartFrom
@@ -177,7 +177,7 @@ function Show-Help {
     Write-Host "    -h, -Help              Show this help message"
     Write-Host "    -AI PROVIDER           AI provider: claude, droid, aider, auto (default: auto)"
     Write-Host "    -c, -Calls NUM         Set max calls per hour (default: 100)"
-    Write-Host "    -p, -Prompt FILE       Set prompt file (default: PROMPT.md)"
+    Write-Host "    -p, -Prompt FILE       Set prompt file (default: .hermes/PROMPT.md)"
     Write-Host "    -s, -Status            Show current status and exit"
     Write-Host "    -m, -Monitor           Start with monitoring (new terminal window)"
     Write-Host "    -v, -VerboseProgress   Show detailed progress updates"
@@ -199,7 +199,7 @@ function Show-Help {
     Write-Host "    -MaxConsecutiveErrors  Max errors before stopping (default: 5)"
     Write-Host ""
     Write-Host "Files created:" -ForegroundColor Yellow
-    Write-Host "    - logs\              All execution logs"
+    Write-Host "    - .hermes/logs/      All execution logs"
     Write-Host "    - docs\generated\    Generated documentation"
     Write-Host "    - status.json        Current status (JSON)"
     Write-Host ""
@@ -680,8 +680,8 @@ function Start-HermesLoop {
         Write-Status -Level "ERROR" -Message "Prompt file '$($script:Config.PromptFile)' not found!"
         Write-Host ""
         
-        if ((Test-Path "tasks") -or (Test-Path "specs")) {
-            Write-Host "This appears to be a Hermes project but is missing PROMPT.md." -ForegroundColor Yellow
+        if ((Test-Path ".hermes\tasks") -or (Test-Path ".hermes")) {
+            Write-Host "This appears to be a Hermes project but is missing .hermes/PROMPT.md." -ForegroundColor Yellow
             Write-Host "You may need to create or restore the PROMPT.md file."
         }
         else {
@@ -693,7 +693,7 @@ function Start-HermesLoop {
         Write-Host "  1. Create a new project: hermes-setup my-project"
         Write-Host "  2. Import existing requirements: hermes-import requirements.md"
         Write-Host "  3. Navigate to an existing Hermes project directory"
-        Write-Host "  4. Or create PROMPT.md manually in this directory"
+        Write-Host "  4. Or create .hermes/PROMPT.md manually"
         Write-Host ""
         return
     }

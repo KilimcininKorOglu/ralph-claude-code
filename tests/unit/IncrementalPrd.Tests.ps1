@@ -6,7 +6,7 @@ $scriptRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 # We'll define the functions locally for testing
 
 function Get-ExistingTaskState {
-    param([string]$TasksDir = "tasks")
+    param([string]$TasksDir = ".hermes\tasks")
     
     $state = @{
         Features = @{}
@@ -97,7 +97,7 @@ Describe "Incremental PRD Update" {
     Context "Get-ExistingTaskState" {
         BeforeEach {
             $testDir = Join-Path $env:TEMP "Hermes-incr-test-$(Get-Random)"
-            New-Item -ItemType Directory -Path "$testDir\tasks" -Force | Out-Null
+            New-Item -ItemType Directory -Path "$testDir\.hermes\tasks" -Force | Out-Null
             Push-Location $testDir
         }
         
@@ -114,7 +114,7 @@ Describe "Incremental PRD Update" {
         }
         
         It "Should return empty state for empty directory" {
-            $state = Get-ExistingTaskState -TasksDir "tasks"
+            $state = Get-ExistingTaskState -TasksDir ".hermes\tasks"
             $state.HasTasks | Should Be $false
         }
         
@@ -135,9 +135,9 @@ Describe "Incremental PRD Update" {
                 "**Status:** NOT_STARTED"
             )
             $content = $lines -join "`r`n"
-            Set-Content -Path "tasks\001-user-auth.md" -Value $content -NoNewline
+            Set-Content -Path ".hermes\tasks\001-user-auth.md" -Value $content -NoNewline
             
-            $state = Get-ExistingTaskState -TasksDir "tasks"
+            $state = Get-ExistingTaskState -TasksDir ".hermes\tasks"
             $state.HasTasks | Should Be $true
             $state.HighestFeatureId | Should Be 1
             $state.HighestTaskId | Should Be 2
@@ -174,10 +174,10 @@ Describe "Incremental PRD Update" {
                 "",
                 "**Status:** NOT_STARTED"
             )
-            Set-Content -Path "tasks\001-first.md" -Value ($lines1 -join "`r`n") -NoNewline
-            Set-Content -Path "tasks\002-second.md" -Value ($lines2 -join "`r`n") -NoNewline
+            Set-Content -Path ".hermes\tasks\001-first.md" -Value ($lines1 -join "`r`n") -NoNewline
+            Set-Content -Path ".hermes\tasks\002-second.md" -Value ($lines2 -join "`r`n") -NoNewline
             
-            $state = Get-ExistingTaskState -TasksDir "tasks"
+            $state = Get-ExistingTaskState -TasksDir ".hermes\tasks"
             $state.HighestFeatureId | Should Be 2
             $state.HighestTaskId | Should Be 4
             $state.Features.Count | Should Be 2
@@ -189,9 +189,9 @@ Describe "Incremental PRD Update" {
 
 Some status content
 "@
-            Set-Content -Path "tasks\tasks-status.md" -Value $content
+            Set-Content -Path ".hermes\tasks\tasks-status.md" -Value $content
             
-            $state = Get-ExistingTaskState -TasksDir "tasks"
+            $state = Get-ExistingTaskState -TasksDir ".hermes\tasks"
             $state.HasTasks | Should Be $false
         }
     }

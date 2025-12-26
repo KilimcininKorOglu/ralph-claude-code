@@ -19,8 +19,8 @@ $script:CB_STATE_HALF_OPEN = "HALF_OPEN"
 $script:CB_STATE_OPEN = "OPEN"
 
 # Configuration
-$script:CB_STATE_FILE = ".circuit_breaker_state"
-$script:CB_HISTORY_FILE = ".circuit_breaker_history"
+$script:CB_STATE_FILE = ".hermes\.circuit_breaker_state"
+$script:CB_HISTORY_FILE = ".hermes\.circuit_breaker_history"
 $script:CB_NO_PROGRESS_THRESHOLD = 3
 $script:CB_SAME_ERROR_THRESHOLD = 5
 

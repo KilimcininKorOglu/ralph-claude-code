@@ -357,8 +357,10 @@ function Initialize-Config {
             timeoutMinutes = 15
         }
         paths = @{
-            tasksDir = "tasks"
-            logsDir = "logs"
+            hermesDir = ".hermes"
+            tasksDir = ".hermes\tasks"
+            logsDir = ".hermes\logs"
+            docsDir = ".hermes\docs"
         }
     }
     

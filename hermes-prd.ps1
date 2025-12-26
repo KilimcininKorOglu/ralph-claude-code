@@ -4,9 +4,9 @@
 .DESCRIPTION
     Reads a PRD file and uses AI to generate task files in task-plan format
 .EXAMPLE
-    hermes-prd docs/PRD.md
-    hermes-prd docs/PRD.md -AI claude
-    hermes-prd docs/PRD.md -AI droid -DryRun
+    hermes-prd PRD.md
+    hermes-prd PRD.md -AI claude
+    hermes-prd PRD.md -AI droid -DryRun
     hermes-prd -List
 #>
 
@@ -21,7 +21,7 @@ param(
     
     [switch]$DryRun,
     
-    [string]$OutputDir = "tasks",
+    [string]$OutputDir = ".hermes\tasks",
     
     [int]$Timeout = 1200,
     
@@ -57,7 +57,7 @@ function Get-ExistingTaskState {
     .SYNOPSIS
         Reads current task state from tasks directory
     #>
-    param([string]$TasksDir = "tasks")
+    param([string]$TasksDir = ".hermes\tasks")
     
     $state = @{
         Features = @{}
@@ -257,9 +257,9 @@ function Show-Usage {
     Write-Host "  Completed and in-progress features are never overwritten."
     Write-Host ""
     Write-Host "Examples:" -ForegroundColor Yellow
-    Write-Host "  hermes-prd docs/PRD.md"
-    Write-Host "  hermes-prd docs/PRD.md -AI claude"
-    Write-Host "  hermes-prd docs/PRD.md -DryRun"
+    Write-Host "  hermes-prd PRD.md"
+    Write-Host "  hermes-prd PRD.md -AI claude"
+    Write-Host "  hermes-prd PRD.md -DryRun"
     Write-Host ""
 }
 
@@ -296,7 +296,7 @@ function Write-TaskFiles {
     $created = @()
     
     foreach ($file in $Files) {
-        # Extract just filename from path like "tasks/001-feature.md"
+        # Extract just filename from path like ".hermes/tasks/001-feature.md"
         $fileName = Split-Path -Leaf $file.FileName
         $filePath = Join-Path $OutputDir $fileName
         

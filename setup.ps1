@@ -129,60 +129,40 @@ function New-HermesProject {
     Push-Location $Name
     
     try {
-        # Create directory structure
+        # Create .hermes directory structure
+        $hermesDir = ".hermes"
+        New-Item -ItemType Directory -Path $hermesDir -Force | Out-Null
+        
         $directories = @(
-            "specs",
-            "specs\stdlib",
-            "src",
-            "examples",
-            "logs",
-            "docs\generated"
+            "$hermesDir\tasks",
+            "$hermesDir\logs",
+            "$hermesDir\docs"
         )
         
         foreach ($dir in $directories) {
             New-Item -ItemType Directory -Path $dir -Force | Out-Null
         }
-        Write-Host "[OK] Created directory structure" -ForegroundColor Green
+        Write-Host "[OK] Created: .hermes/ directory structure" -ForegroundColor Green
         
-        # Copy PROMPT.md template
+        # Copy PROMPT.md template to .hermes/
         $promptSource = Join-Path $templatesPath "PROMPT.md"
+        $promptDest = Join-Path $hermesDir "PROMPT.md"
         if (Test-Path $promptSource) {
-            Copy-Item -Path $promptSource -Destination "PROMPT.md" -Force
-            Write-Host "[OK] Created: PROMPT.md" -ForegroundColor Green
+            Copy-Item -Path $promptSource -Destination $promptDest -Force
+            Write-Host "[OK] Created: .hermes/PROMPT.md" -ForegroundColor Green
         }
         else {
             $content = Get-DefaultPromptTemplate -ProjectName $Name
-            $content | Set-Content "PROMPT.md" -Encoding UTF8
-            Write-Host "[OK] Created: PROMPT.md (default template)" -ForegroundColor Green
+            $content | Set-Content $promptDest -Encoding UTF8
+            Write-Host "[OK] Created: .hermes/PROMPT.md (default template)" -ForegroundColor Green
         }
         
-        # Create tasks directory
-        New-Item -ItemType Directory -Path "tasks" -Force | Out-Null
-        Write-Host "[OK] Created: tasks/" -ForegroundColor Green
-        
-        # Copy specs templates if they exist
-        $specsSource = Join-Path $templatesPath "specs"
-        if (Test-Path $specsSource) {
-            Get-ChildItem $specsSource -File | ForEach-Object {
-                Copy-Item -Path $_.FullName -Destination "specs\" -Force
-            }
-        }
-        
-        # Create .gitkeep files for empty directories
-        $emptyDirs = @("src", "examples", "logs", "docs\generated", "specs\stdlib")
-        foreach ($dir in $emptyDirs) {
-            $gitkeep = Join-Path $dir ".gitkeep"
-            if (-not (Test-Path $gitkeep)) {
-                New-Item -ItemType File -Path $gitkeep -Force | Out-Null
-            }
-        }
-        
-        # Create README.md
+        # Create README.md in project root
         $readme = Get-ProjectReadme -ProjectName $Name
         $readme | Set-Content "README.md" -Encoding UTF8
         Write-Host "[OK] Created: README.md" -ForegroundColor Green
         
-        # Create .gitignore
+        # Create .gitignore with .hermes/ excluded
         $gitignore = Get-GitIgnoreContent
         $gitignore | Set-Content ".gitignore" -Encoding UTF8
         Write-Host "[OK] Created: .gitignore" -ForegroundColor Green
@@ -192,7 +172,7 @@ function New-HermesProject {
         if (Test-Path $configManagerPath) {
             . $configManagerPath
             Initialize-ProjectConfig -BasePath "." -Force | Out-Null
-            Write-Host "[OK] Created: hermes.config.json" -ForegroundColor Green
+            Write-Host "[OK] Created: .hermes/config.json" -ForegroundColor Green
         }
         
         # Initialize git repository
@@ -281,22 +261,24 @@ A Hermes-managed project for autonomous AI development.
 
 ## Getting Started
 
-1. Create a PRD document in ``docs/PRD.md``
-2. Run: ``hermes-prd docs/PRD.md``
+1. Create a PRD document (e.g., ``PRD.md``)
+2. Run: ``hermes-prd PRD.md``
 3. Run: ``hermes -TaskMode -AutoBranch -AutoCommit``
 
-## Project Structure
+## Hermes Workspace
 
-- ``PROMPT.md`` - Main development instructions for Hermes
-- ``tasks/`` - Task files (created by hermes-prd)
-- ``src/`` - Source code
-- ``docs/`` - Project documentation
-- ``logs/`` - Hermes execution logs
+All Hermes files are stored in ``.hermes/`` folder (gitignored):
+
+- ``.hermes/PROMPT.md`` - AI instructions
+- ``.hermes/tasks/`` - Task files
+- ``.hermes/logs/`` - Execution logs
+- ``.hermes/docs/`` - PRD and documentation
+- ``.hermes/config.json`` - Project configuration
 
 ## Commands
 
 ``````powershell
-hermes-prd docs/PRD.md                          # Parse PRD to tasks
+hermes-prd PRD.md                               # Parse PRD to tasks
 hermes -TaskMode -AutoBranch -AutoCommit        # Run Task Mode
 hermes -TaskStatus                              # Show task progress
 hermes -TaskMode -Autonomous                    # Run without pausing
@@ -310,22 +292,8 @@ hermes -TaskMode -Autonomous                    # Run without pausing
 
 function Get-GitIgnoreContent {
     return @"
-# Hermes state files
-.call_count
-.last_reset
-.exit_signals
-.circuit_breaker_state
-.circuit_breaker_history
-.response_analysis
-.last_output_length
-progress.json
-status.json
-
-# Logs
-logs/
-
-# Generated docs
-docs/generated/
+# Hermes folder (AI workspace)
+.hermes/
 
 # Node modules (if applicable)
 node_modules/

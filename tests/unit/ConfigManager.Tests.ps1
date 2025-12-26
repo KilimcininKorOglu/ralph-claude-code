@@ -17,7 +17,7 @@ Describe "ConfigManager" {
             $config.taskMode.autoBranch | Should Be $false
             $config.taskMode.autoCommit | Should Be $false
             $config.loop.maxCallsPerHour | Should Be 100
-            $config.paths.tasksDir | Should Be "tasks"
+            $config.paths.tasksDir | Should Be ".hermes\tasks"
         }
     }
     
@@ -31,16 +31,16 @@ Describe "ConfigManager" {
     }
     
     Context "Get-ProjectConfigPath" {
-        It "Should return hermes.config.json in base path" {
+        It "Should return .hermes/config.json in base path" {
             $path = Get-ProjectConfigPath -BasePath "C:\test"
             
-            $path | Should Be "C:\test\hermes.config.json"
+            $path | Should Be "C:\test\.hermes\config.json"
         }
         
         It "Should default to current directory" {
             $path = Get-ProjectConfigPath
             
-            $path | Should Be ".\hermes.config.json"
+            $path | Should Be ".\.hermes\config.json"
         }
     }
     
@@ -149,7 +149,8 @@ Describe "ConfigManager" {
         }
         
         It "Should merge project config over defaults" {
-            $projectConfig = Join-Path $script:testDir "hermes.config.json"
+            New-Item -ItemType Directory -Path (Join-Path $script:testDir ".hermes") -Force | Out-Null
+            $projectConfig = Join-Path $script:testDir ".hermes\config.json"
             '{"ai": {"planning": "aider", "timeout": 600}}' | Set-Content $projectConfig
             
             $config = Get-HermesConfig -BasePath $script:testDir
@@ -260,12 +261,13 @@ Describe "ConfigManager" {
             $result = Initialize-ProjectConfig -BasePath $script:testDir
             
             $result | Should Be $true
-            $configPath = Join-Path $script:testDir "hermes.config.json"
+            $configPath = Join-Path $script:testDir ".hermes\config.json"
             Test-Path $configPath | Should Be $true
         }
         
         It "Should not overwrite existing without Force" {
-            $configPath = Join-Path $script:testDir "hermes.config.json"
+            New-Item -ItemType Directory -Path (Join-Path $script:testDir ".hermes") -Force | Out-Null
+            $configPath = Join-Path $script:testDir ".hermes\config.json"
             "existing" | Set-Content $configPath
             
             $result = Initialize-ProjectConfig -BasePath $script:testDir
@@ -301,7 +303,8 @@ Describe "ConfigManager" {
             
             Set-ConfigValue -Key "ai.timeout" -Value 600 -Scope "project" -BasePath $projectDir
             
-            $configPath = Join-Path $projectDir "hermes.config.json"
+            New-Item -ItemType Directory -Path (Join-Path $projectDir ".hermes") -Force | Out-Null
+            $configPath = Join-Path $projectDir ".hermes\config.json"
             $config = Get-Content $configPath -Raw | ConvertFrom-Json
             $config.ai.timeout | Should Be 600
         }
@@ -405,7 +408,8 @@ Describe "ConfigManager" {
                     coding = "claude"
                 }
             }
-            $config | ConvertTo-Json -Depth 10 | Set-Content "hermes.config.json"
+            New-Item -ItemType Directory -Path ".hermes" -Force | Out-Null
+            $config | ConvertTo-Json -Depth 10 | Set-Content ".hermes\config.json"
             
             $planningResult = Get-AIForTask -TaskType "planning"
             $codingResult = Get-AIForTask -TaskType "coding"
@@ -423,7 +427,8 @@ Describe "ConfigManager" {
                     provider = "aider"
                 }
             }
-            $config | ConvertTo-Json -Depth 10 | Set-Content "hermes.config.json"
+            New-Item -ItemType Directory -Path ".hermes" -Force | Out-Null
+            $config | ConvertTo-Json -Depth 10 | Set-Content ".hermes\config.json"
             
             $result = Get-AIForTask -TaskType "planning"
             
