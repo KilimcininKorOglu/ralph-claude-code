@@ -37,7 +37,7 @@ func NewRunCmd() *cobra.Command {
 	cmd.Flags().Bool("autonomous", true, "Run without pausing (overrides config)")
 	cmd.Flags().Int("timeout", 0, "AI timeout in seconds (0 = use config)")
 	cmd.Flags().Bool("debug", false, "Enable debug output")
-	cmd.Flags().String("ai", "", "AI provider: claude, droid, auto (default: from config or auto)")
+	cmd.Flags().String("ai", "", "AI provider: claude, droid, gemini, auto (default: from config or auto)")
 
 	return cmd
 }
