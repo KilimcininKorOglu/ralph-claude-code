@@ -1434,7 +1434,11 @@ if ($CircuitStatus) {
 }
 
 # Determine which loop to run
-if ($TaskMode) {
+# Default to TaskMode if .hermes/tasks directory exists
+$tasksExist = Test-Path (Join-Path "." ".hermes\tasks")
+$useTaskMode = $TaskMode -or ($tasksExist -and -not $Monitor)
+
+if ($useTaskMode) {
     if ($Monitor) {
         Write-Status -Level "INFO" -Message "Starting with monitoring..."
         $monitorScript = Join-Path $script:ScriptDir "hermes_monitor.ps1"
