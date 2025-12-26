@@ -421,17 +421,12 @@ Write-Log -Level "INFO" -Message "Reading PRD: $PrdFile"
 $prdInfo = Test-PrdSize -PrdFile $PrdFile
 Write-Log -Level "INFO" -Message "PRD size: $($prdInfo.Size) chars, $($prdInfo.Lines) lines" -NoConsole
 
-# Determine AI provider (CLI > config > auto-detect)
-$configProvider = Get-ConfigValue -Key "ai.provider"
-if ($AI -eq "auto" -and $configProvider -ne "auto") {
-    $AI = $configProvider
-} elseif ($AI -eq "auto") {
-    $AI = Get-AutoProvider
-    if (-not $AI) {
-        Write-Log -Level "ERROR" -Message "No AI provider found. Install claude, droid, or aider."
-        Close-Logger -Success $false
-        exit 1
-    }
+# Determine AI provider for planning tasks (CLI > config > auto-detect)
+$AI = Get-AIForTask -TaskType "planning" -Override $(if ($AI -ne "auto") { $AI } else { $null })
+if (-not $AI) {
+    Write-Log -Level "ERROR" -Message "No AI provider found. Install claude, droid, or aider."
+    Close-Logger -Success $false
+    exit 1
 }
 
 # Get timeout from config if not overridden (use prdTimeout for PRD parsing)

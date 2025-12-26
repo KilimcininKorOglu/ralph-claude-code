@@ -9,8 +9,10 @@ Describe "ConfigManager" {
             $config = Get-DefaultConfig
             
             $config | Should Not BeNullOrEmpty
-            $config.ai.provider | Should Be "auto"
+            $config.ai.planning | Should Be "claude"
+            $config.ai.coding | Should Be "droid"
             $config.ai.timeout | Should Be 300
+            $config.ai.prdTimeout | Should Be 1200
             $config.ai.maxRetries | Should Be 10
             $config.taskMode.autoBranch | Should Be $false
             $config.taskMode.autoCommit | Should Be $false
@@ -141,17 +143,19 @@ Describe "ConfigManager" {
         It "Should return defaults when no config files exist" {
             $config = Get-HermesConfig -BasePath $script:testDir
             
-            $config.ai.provider | Should Be "auto"
+            $config.ai.planning | Should Be "claude"
+            $config.ai.coding | Should Be "droid"
             $config.ai.timeout | Should Be 300
         }
         
         It "Should merge project config over defaults" {
             $projectConfig = Join-Path $script:testDir "hermes.config.json"
-            '{"ai": {"provider": "droid", "timeout": 600}}' | Set-Content $projectConfig
+            '{"ai": {"planning": "aider", "timeout": 600}}' | Set-Content $projectConfig
             
             $config = Get-HermesConfig -BasePath $script:testDir
             
-            $config.ai.provider | Should Be "droid"
+            $config.ai.planning | Should Be "aider"
+            $config.ai.coding | Should Be "droid"
             $config.ai.timeout | Should Be 600
             $config.ai.maxRetries | Should Be 10
         }
@@ -168,9 +172,9 @@ Describe "ConfigManager" {
         }
         
         It "Should get value using dot notation" {
-            $value = Get-ConfigValue -Key "ai.provider" -BasePath $script:testDir
+            $value = Get-ConfigValue -Key "ai.planning" -BasePath $script:testDir
             
-            $value | Should Be "auto"
+            $value | Should Be "claude"
         }
         
         It "Should get nested value" {
@@ -180,9 +184,9 @@ Describe "ConfigManager" {
         }
         
         It "Should return override when provided" {
-            $value = Get-ConfigValue -Key "ai.provider" -Override "claude" -BasePath $script:testDir
+            $value = Get-ConfigValue -Key "ai.planning" -Override "aider" -BasePath $script:testDir
             
-            $value | Should Be "claude"
+            $value | Should Be "aider"
         }
         
         It "Should return null for non-existent key" {
@@ -192,9 +196,9 @@ Describe "ConfigManager" {
         }
         
         It "Should ignore empty string override" {
-            $value = Get-ConfigValue -Key "ai.provider" -Override "" -BasePath $script:testDir
+            $value = Get-ConfigValue -Key "ai.planning" -Override "" -BasePath $script:testDir
             
-            $value | Should Be "auto"
+            $value | Should Be "claude"
         }
     }
     
@@ -237,7 +241,8 @@ Describe "ConfigManager" {
             
             $result | Should Be $true
             $content = Get-Content $configPath -Raw | ConvertFrom-Json
-            $content.ai.provider | Should Be "auto"
+            $content.ai.planning | Should Be "claude"
+            $content.ai.coding | Should Be "droid"
         }
     }
     
@@ -353,6 +358,83 @@ Describe "ConfigManager" {
             $result = Test-ConfigExists -Scope "project" -BasePath $projectDir
             
             $result | Should Be $false
+        }
+    }
+    
+    Context "Get-AIForTask" {
+        BeforeEach {
+            $script:testDir = Join-Path $env:TEMP "hermes-test-$(Get-Random)"
+            New-Item -ItemType Directory -Path $script:testDir -Force | Out-Null
+            Push-Location $script:testDir
+        }
+        
+        AfterEach {
+            Pop-Location
+            Remove-Item -Recurse -Force $script:testDir -ErrorAction SilentlyContinue
+        }
+        
+        It "Should return planning AI from default config" {
+            $result = Get-AIForTask -TaskType "planning"
+            
+            $result | Should Be "claude"
+        }
+        
+        It "Should return coding AI from default config" {
+            $result = Get-AIForTask -TaskType "coding"
+            
+            $result | Should Be "droid"
+        }
+        
+        It "Should respect CLI override for planning" {
+            $result = Get-AIForTask -TaskType "planning" -Override "aider"
+            
+            $result | Should Be "aider"
+        }
+        
+        It "Should respect CLI override for coding" {
+            $result = Get-AIForTask -TaskType "coding" -Override "claude"
+            
+            $result | Should Be "claude"
+        }
+        
+        It "Should use project config if set" {
+            # Create project config with custom planning AI
+            $config = @{
+                ai = @{
+                    planning = "aider"
+                    coding = "claude"
+                }
+            }
+            $config | ConvertTo-Json -Depth 10 | Set-Content "hermes.config.json"
+            
+            $planningResult = Get-AIForTask -TaskType "planning"
+            $codingResult = Get-AIForTask -TaskType "coding"
+            
+            $planningResult | Should Be "aider"
+            $codingResult | Should Be "claude"
+        }
+        
+        It "Should fallback to legacy provider config when planning not set" {
+            # Create project config that overrides planning to null and sets legacy provider
+            $config = @{
+                ai = @{
+                    planning = $null
+                    coding = $null
+                    provider = "aider"
+                }
+            }
+            $config | ConvertTo-Json -Depth 10 | Set-Content "hermes.config.json"
+            
+            $result = Get-AIForTask -TaskType "planning"
+            
+            $result | Should Be "aider"
+        }
+        
+        It "Should ignore auto as override" {
+            $result = Get-AIForTask -TaskType "planning" -Override "auto"
+            
+            # Should return default, not "auto"
+            $result | Should Be "claude"
         }
     }
 }

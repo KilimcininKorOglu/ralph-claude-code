@@ -376,8 +376,8 @@ function Invoke-AIWithRetry {
         [Parameter(Mandatory)]
         [string]$PromptText,
         
-        [Parameter(Mandatory)]
-        [string]$Content,
+        [AllowEmptyString()]
+        [string]$Content = "",
         
         [string]$InputFile,
         
@@ -396,9 +396,14 @@ function Invoke-AIWithRetry {
                 -PromptText $PromptText -Content $Content `
                 -InputFile $InputFile -TimeoutSeconds $TimeoutSeconds
             
-            # Debug: log result length
+            # Debug: log result length and preview
             $resultLen = if ($result) { $result.Length } else { 0 }
             Write-Host "[DEBUG] AI output length: $resultLen chars" -ForegroundColor Gray
+            if ($resultLen -gt 0 -and $resultLen -lt 2000) {
+                # Log short outputs for debugging
+                Write-Host "[DEBUG] Output preview:" -ForegroundColor Gray
+                Write-Host $result.Substring(0, [Math]::Min(500, $resultLen)) -ForegroundColor DarkGray
+            }
             
             # Validate output
             $files = Split-AIOutput -Output $result

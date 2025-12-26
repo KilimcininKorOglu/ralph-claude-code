@@ -108,15 +108,8 @@ $script:ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 # Load configuration (merges global, project, and CLI params)
 $script:HermesConfig = Get-HermesConfig
 
-# Resolve AI Provider from config or CLI
-$configProvider = Get-ConfigValue -Key "ai.provider"
-$script:ResolvedAIProvider = if ($AI -ne "auto") {
-    $AI
-} elseif ($configProvider -ne "auto") {
-    $configProvider
-} else {
-    Get-AutoProvider
-}
+# Resolve AI Provider for coding tasks (CLI > config > auto-detect)
+$script:ResolvedAIProvider = Get-AIForTask -TaskType "coding" -Override $(if ($AI -ne "auto") { $AI } else { $null })
 
 # Validate AI provider
 if (-not $script:ResolvedAIProvider) {

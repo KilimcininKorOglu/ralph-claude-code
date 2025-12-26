@@ -340,8 +340,10 @@ function Initialize-Config {
     
     $defaultConfig = @{
         ai = @{
-            provider = "auto"
+            planning = "claude"     # AI for PRD parsing, task addition
+            coding = "droid"        # AI for task execution
             timeout = 300
+            prdTimeout = 1200
             maxRetries = 10
         }
         taskMode = @{

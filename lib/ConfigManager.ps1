@@ -7,7 +7,8 @@
 
 $script:DefaultConfig = @{
     ai = @{
-        provider = "droid"
+        planning = "claude"     # AI for PRD parsing, task addition (structured output)
+        coding = "droid"        # AI for task execution, implementation
         timeout = 300           # Default timeout for task mode (5 min)
         prdTimeout = 1200       # Timeout for PRD parsing (20 min)
         maxRetries = 10
@@ -199,6 +200,52 @@ function Get-ConfigValue {
     return $value
 }
 
+function Get-AIForTask {
+    <#
+    .SYNOPSIS
+        Get AI provider for specific task type
+    .PARAMETER TaskType
+        Type of task: planning (PRD, add task) or coding (implementation)
+    .PARAMETER Override
+        CLI override value (takes priority)
+    .PARAMETER BasePath
+        Base path for project config
+    #>
+    param(
+        [Parameter(Mandatory)]
+        [ValidateSet("planning", "coding")]
+        [string]$TaskType,
+        
+        [string]$Override = $null,
+        [string]$BasePath = "."
+    )
+    
+    # CLI override takes priority
+    if ($Override -and $Override -ne "auto") {
+        return $Override
+    }
+    
+    # Check task-specific config
+    $specific = Get-ConfigValue -Key "ai.$TaskType" -BasePath $BasePath
+    if ($specific -and $specific -is [string] -and $specific -ne "auto") {
+        return $specific
+    }
+    
+    # Fallback to legacy provider config (backward compatibility)
+    $legacy = Get-ConfigValue -Key "ai.provider" -BasePath $BasePath
+    if ($legacy -and $legacy -ne "auto") {
+        return $legacy
+    }
+    
+    # Auto-detect (requires AIProvider.ps1 to be loaded)
+    if (Get-Command "Get-AutoProvider" -ErrorAction SilentlyContinue) {
+        return Get-AutoProvider
+    }
+    
+    # Default fallback
+    return "claude"
+}
+
 function Initialize-DefaultConfig {
     <#
     .SYNOPSIS
@@ -357,8 +404,16 @@ function Show-Config {
     Write-Host "====================" -ForegroundColor Cyan
     
     Write-Host "`n[AI Settings]" -ForegroundColor Yellow
-    Write-Host "  Provider:    $($config.ai.provider)"
+    Write-Host "  Planning AI: $($config.ai.planning)" -NoNewline
+    Write-Host " (PRD parsing, task addition)" -ForegroundColor DarkGray
+    Write-Host "  Coding AI:   $($config.ai.coding)" -NoNewline
+    Write-Host " (task execution)" -ForegroundColor DarkGray
+    if ($config.ai.provider) {
+        Write-Host "  Provider:    $($config.ai.provider)" -NoNewline
+        Write-Host " (legacy fallback)" -ForegroundColor DarkGray
+    }
     Write-Host "  Timeout:     $($config.ai.timeout) seconds"
+    Write-Host "  PRD Timeout: $($config.ai.prdTimeout) seconds"
     Write-Host "  Max Retries: $($config.ai.maxRetries)"
     
     Write-Host "`n[Task Mode]" -ForegroundColor Yellow

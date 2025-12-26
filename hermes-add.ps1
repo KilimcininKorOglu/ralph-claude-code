@@ -111,16 +111,11 @@ $ids = Get-NextIds -BasePath "."
 Write-Host "[INFO] Next Feature ID: F$($ids.NextFeatureIdPadded)" -ForegroundColor Gray
 Write-Host "[INFO] Next Task ID: T$($ids.NextTaskIdPadded)" -ForegroundColor Gray
 
-# Determine AI provider (CLI > config > auto-detect)
-$configProvider = Get-ConfigValue -Key "ai.provider"
-if ($AI -eq "auto" -and $configProvider -ne "auto") {
-    $AI = $configProvider
-} elseif ($AI -eq "auto") {
-    $AI = Get-AutoProvider
-    if (-not $AI) {
-        Write-Error "No AI provider found. Install claude, droid, or aider."
-        exit 1
-    }
+# Determine AI provider for planning tasks (CLI > config > auto-detect)
+$AI = Get-AIForTask -TaskType "planning" -Override $(if ($AI -ne "auto") { $AI } else { $null })
+if (-not $AI) {
+    Write-Error "No AI provider found. Install claude, droid, or aider."
+    exit 1
 }
 
 # Get timeout from config if not overridden

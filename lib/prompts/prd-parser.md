@@ -277,3 +277,7 @@ Unit tests for authentication flow.
 ## NOW PARSE THIS PRD
 
 {PRD_CONTENT}
+
+---
+
+**REMINDER: Your output MUST contain the COMPLETE file contents with `### FILE: tasks/XXX-filename.md` markers. DO NOT summarize. Output the actual markdown content for each file.**
