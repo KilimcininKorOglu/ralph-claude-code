@@ -2,6 +2,13 @@
 
 Autonomous AI development loop system written in Go. Supports Claude, Droid, and Gemini CLIs with task-driven development, automatic branching, and circuit breaker protection.
 
+## Documentation
+
+| Document                              | Description                          |
+|---------------------------------------|--------------------------------------|
+| [User Guide](docs/USER-GUIDE.md)      | Complete usage documentation         |
+| [Example Usage](docs/example-usage.md)| Step-by-step walkthrough             |
+
 ## Features
 
 - **Multi-AI Support** - Claude, Droid, and Gemini CLI providers with auto-detection
