@@ -62,8 +62,8 @@ function Show-Help {
     Write-Host "    2. Uses Claude Code to analyze and convert content"
     Write-Host "    3. Creates a Hermes project with:"
     Write-Host "       - .hermes/PROMPT.md (development instructions)"
-    Write-Host "       - @fix_plan.md (prioritized tasks)"
-    Write-Host "       - specs/requirements.md (technical specs)"
+    Write-Host "       - .hermes/tasks/*.md (task files)"
+    Write-Host "       - .hermes/docs/requirements.md (technical specs)"
     Write-Host ""
 }
 
@@ -166,7 +166,7 @@ $Content
 
 Please generate the following files. Output each file clearly separated with headers.
 
-## 1. PROMPT.md
+## 1. .hermes/PROMPT.md
 Create development instructions for an AI agent working on this project. Include:
 - Project context and goals extracted from the PRD
 - Key objectives and success criteria
@@ -174,15 +174,7 @@ Create development instructions for an AI agent working on this project. Include
 - Testing requirements
 - The standard Hermes status reporting block (HERMES_STATUS with STATUS, EXIT_SIGNAL, RECOMMENDATION)
 
-## 2. @fix_plan.md
-Create a prioritized task list in markdown checkbox format:
-- [ ] High priority tasks first (core functionality)
-- [ ] Break down into small, actionable items
-- [ ] Include setup and configuration tasks
-- [ ] Include testing tasks
-- [ ] Group by feature area or component
-
-## 3. specs/requirements.md
+## 2. .hermes/docs/requirements.md
 Extract and organize technical requirements:
 - Functional requirements (what the system must do)
 - Non-functional requirements (performance, security, etc.)
@@ -192,14 +184,11 @@ Extract and organize technical requirements:
 - Acceptance criteria
 
 Output format - use these EXACT headers:
-=== PROMPT.md ===
+=== .hermes/PROMPT.md ===
 (PROMPT.md content here)
 
-=== @fix_plan.md ===
-(@fix_plan.md content here)
-
-=== specs/requirements.md ===
-(specs/requirements.md content here)
+=== .hermes/docs/requirements.md ===
+(requirements.md content here)
 "@
 
     Write-Host "[INFO] Converting document with Claude Code..." -ForegroundColor Cyan
@@ -237,9 +226,8 @@ function Split-ConversionOutput {
     
     # Parse sections using regex
     $patterns = @{
-        "PROMPT.md" = "(?s)=== PROMPT\.md ===\s*(.*?)(?==== |$)"
-        "@fix_plan.md" = "(?s)=== @fix_plan\.md ===\s*(.*?)(?==== |$)"
-        "specs/requirements.md" = "(?s)=== specs/requirements\.md ===\s*(.*?)(?==== |$)"
+        ".hermes/PROMPT.md" = "(?s)=== \.hermes/PROMPT\.md ===\s*(.*?)(?==== |$)"
+        ".hermes/docs/requirements.md" = "(?s)=== \.hermes/docs/requirements\.md ===\s*(.*?)(?==== |$)"
     }
     
     foreach ($pattern in $patterns.GetEnumerator()) {
@@ -318,7 +306,7 @@ function New-HermesProjectFromPRD {
     if ($files.Count -eq 0) {
         Write-Host "[WARN] Could not parse Claude output. Creating project with raw output." -ForegroundColor Yellow
         $files = @{
-            "PROMPT.md" = $conversionOutput
+            ".hermes/PROMPT.md" = $conversionOutput
         }
     }
     
@@ -331,7 +319,7 @@ function New-HermesProjectFromPRD {
     
     try {
         # Create directories
-        $directories = @("specs", "specs\stdlib", "src", "examples", "logs", "docs\generated", "docs\original")
+        $directories = @(".hermes", ".hermes\tasks", ".hermes\logs", ".hermes\docs")
         foreach ($dir in $directories) {
             New-Item -ItemType Directory -Path $dir -Force | Out-Null
         }
@@ -351,36 +339,6 @@ function New-HermesProjectFromPRD {
             Write-Host "[OK] Created: $filePath" -ForegroundColor Green
         }
         
-        # Copy @AGENT.md template if available
-        $agentTemplate = Join-Path $script:TemplatesDir "AGENT.md"
-        if (Test-Path $agentTemplate) {
-            Copy-Item $agentTemplate "@AGENT.md"
-            Write-Host "[OK] Created: @AGENT.md" -ForegroundColor Green
-        }
-        else {
-            # Create minimal @AGENT.md
-            $agentContent = @"
-# Agent Instructions
-
-## Build Commands
-``````bash
-# Add your build commands here
-``````
-
-## Run Commands
-``````bash
-# Add your run commands here
-``````
-
-## Test Commands
-``````bash
-# Add your test commands here
-``````
-"@
-            $agentContent | Set-Content "@AGENT.md" -Encoding UTF8
-            Write-Host "[OK] Created: @AGENT.md (default)" -ForegroundColor Green
-        }
-        
         # Create .gitignore
         $gitignore = @"
 # Hermes folder (AI workspace)
@@ -396,15 +354,8 @@ __pycache__/
         
         # Store original PRD
         $originalFileName = Split-Path $InputFile -Leaf
-        Copy-Item $InputFile "docs\original\$originalFileName"
-        Write-Host "[OK] Saved original: docs\original\$originalFileName" -ForegroundColor Green
-        
-        # Create .gitkeep files
-        $emptyDirs = @("src", "examples", "logs", "docs\generated", "specs\stdlib")
-        foreach ($dir in $emptyDirs) {
-            $gitkeep = Join-Path $dir ".gitkeep"
-            New-Item -ItemType File -Path $gitkeep -Force | Out-Null
-        }
+        Copy-Item $InputFile ".hermes\docs\$originalFileName"
+        Write-Host "[OK] Saved original: .hermes\docs\$originalFileName" -ForegroundColor Green
         
         # Initialize git
         try {
@@ -422,15 +373,13 @@ __pycache__/
         Write-Host "Project '$ProjectName' created successfully!" -ForegroundColor Green
         Write-Host ""
         Write-Host "Generated files:" -ForegroundColor Cyan
-        Write-Host "  - .hermes/PROMPT.md  (Hermes development instructions)"
-        Write-Host "  - @fix_plan.md       (Prioritized task list)"
-        Write-Host "  - specs/requirements.md (Technical requirements)"
-        Write-Host "  - @AGENT.md          (Build/run instructions)"
+        Write-Host "  - .hermes/PROMPT.md           (Development instructions)"
+        Write-Host "  - .hermes/docs/requirements.md (Technical requirements)"
         Write-Host ""
         Write-Host "Next steps:" -ForegroundColor Cyan
         Write-Host "  1. cd $ProjectName"
-        Write-Host "  2. Review and adjust the generated files"
-        Write-Host "  3. Run: hermes -Monitor"
+        Write-Host "  2. Run: hermes-prd .hermes\docs\$originalFileName"
+        Write-Host "  3. Run: hermes -TaskMode -AutoBranch -AutoCommit"
         Write-Host ""
     }
     finally {
