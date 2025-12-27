@@ -194,7 +194,7 @@ func runExecute(cmd *cobra.Command, args []string) error {
 
 		// Execute AI
 		executor := ai.NewTaskExecutor(provider, ".")
-		result, err := executor.ExecuteTask(ctx, nextTask, promptContent)
+		result, err := executor.ExecuteTask(ctx, nextTask, promptContent, cfg.AI.StreamOutput)
 
 		if err != nil {
 			logger.Error("AI execution failed: %v", err)

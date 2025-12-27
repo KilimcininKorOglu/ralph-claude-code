@@ -323,9 +323,14 @@ func (a *App) startRun() tea.Cmd {
 		promptContent, _ := injector.Read()
 
 		// Execute AI
+		cfg, _ := config.Load(a.basePath)
+		streamOutput := true
+		if cfg != nil {
+			streamOutput = cfg.AI.StreamOutput
+		}
 		provider := ai.NewClaudeProvider()
 		executor := ai.NewTaskExecutor(provider, a.basePath)
-		result, err := executor.ExecuteTask(ctx, nextTask, promptContent)
+		result, err := executor.ExecuteTask(ctx, nextTask, promptContent, streamOutput)
 
 		if err != nil {
 			a.breaker.AddLoopResult(false, true, a.loopCount)

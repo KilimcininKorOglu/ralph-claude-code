@@ -22,16 +22,44 @@ func NewTaskExecutor(provider Provider, workDir string) *TaskExecutor {
 }
 
 // ExecuteTask executes a single task
-func (e *TaskExecutor) ExecuteTask(ctx context.Context, t *task.Task, promptContent string) (*ExecuteResult, error) {
+func (e *TaskExecutor) ExecuteTask(ctx context.Context, t *task.Task, promptContent string, streamOutput bool) (*ExecuteResult, error) {
 	prompt := e.buildTaskPrompt(t, promptContent)
 
 	opts := &ExecuteOptions{
-		Prompt:  prompt,
-		WorkDir: e.workDir,
-		Tools:   []string{"Read", "Write", "Edit", "Bash", "Glob", "Grep"},
+		Prompt:       prompt,
+		WorkDir:      e.workDir,
+		Tools:        []string{"Read", "Write", "Edit", "Bash", "Glob", "Grep"},
+		StreamOutput: streamOutput,
+	}
+
+	if streamOutput {
+		return e.executeWithStreaming(ctx, opts)
 	}
 
 	return e.provider.Execute(ctx, opts)
+}
+
+// executeWithStreaming executes with real-time output to console
+func (e *TaskExecutor) executeWithStreaming(ctx context.Context, opts *ExecuteOptions) (*ExecuteResult, error) {
+	events, err := e.provider.ExecuteStream(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	var output string
+	for event := range events {
+		switch event.Type {
+		case "text":
+			fmt.Print(event.Text)
+			output += event.Text
+		case "error":
+			return &ExecuteResult{Success: false, Output: output, Error: event.Text}, nil
+		case "done":
+			fmt.Println()
+		}
+	}
+
+	return &ExecuteResult{Success: true, Output: output}, nil
 }
 
 // ExecuteTaskStream executes a task with streaming output
