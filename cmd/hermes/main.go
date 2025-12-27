@@ -34,6 +34,10 @@ func main() {
 	rootCmd.AddCommand(cmd.NewLogCmd())
 	rootCmd.AddCommand(cmd.NewIdeaCmd())
 
+	// Set version for update command
+	cmd.SetUpdateVersion(version)
+	rootCmd.AddCommand(cmd.NewUpdateCmd())
+
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
