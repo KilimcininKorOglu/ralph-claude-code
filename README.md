@@ -162,15 +162,52 @@ my-project/
   "ai": {
     "planning": "claude",
     "coding": "claude",
-    "timeout": 300
+    "timeout": 300,
+    "prdTimeout": 1200,
+    "maxRetries": 10,
+    "streamOutput": true
   },
   "taskMode": {
     "autoBranch": true,
     "autoCommit": true,
-    "autonomous": true
+    "autonomous": true,
+    "maxConsecutiveErrors": 5
+  },
+  "loop": {
+    "maxCallsPerHour": 100,
+    "timeoutMinutes": 15,
+    "errorDelay": 10
+  },
+  "paths": {
+    "hermesDir": ".hermes",
+    "tasksDir": ".hermes/tasks",
+    "logsDir": ".hermes/logs",
+    "docsDir": ".hermes/docs"
   }
 }
 ```
+
+### Configuration Options
+
+| Section    | Key                   | Default        | Description                          |
+|------------|-----------------------|----------------|--------------------------------------|
+| ai         | planning              | "claude"       | AI provider for PRD parsing          |
+| ai         | coding                | "claude"       | AI provider for task execution       |
+| ai         | timeout               | 300            | Task execution timeout (seconds)     |
+| ai         | prdTimeout            | 1200           | PRD parsing timeout (seconds)        |
+| ai         | maxRetries            | 10             | Maximum retry attempts               |
+| ai         | streamOutput          | true           | Stream AI output to console          |
+| taskMode   | autoBranch            | true           | Create feature branches              |
+| taskMode   | autoCommit            | true           | Commit on task completion            |
+| taskMode   | autonomous            | true           | Run without pausing between tasks    |
+| taskMode   | maxConsecutiveErrors  | 5              | Stop after N consecutive errors      |
+| loop       | maxCallsPerHour       | 100            | Rate limit for AI calls              |
+| loop       | timeoutMinutes        | 15             | Loop timeout in minutes              |
+| loop       | errorDelay            | 10             | Delay after error (seconds)          |
+| paths      | hermesDir             | ".hermes"      | Hermes data directory                |
+| paths      | tasksDir              | ".hermes/tasks"| Task files directory                 |
+| paths      | logsDir               | ".hermes/logs" | Log files directory                  |
+| paths      | docsDir               | ".hermes/docs" | Documentation directory              |
 
 Priority: CLI flag > Project config > Global config (~/.hermes/config.json) > Defaults
 
