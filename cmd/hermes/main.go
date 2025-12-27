@@ -8,13 +8,13 @@ import (
 	"hermes/internal/cmd"
 )
 
-var version = "1.0.0"
+var version = "1.1.0"
 
 func main() {
 	rootCmd := &cobra.Command{
 		Use:     "hermes",
 		Short:   "Hermes Autonomous Agent",
-		Long:    "Autonomous AI development loop using Claude Code SDK",
+		Long:    "AI-powered autonomous application development system",
 		Version: version,
 		Run: func(c *cobra.Command, args []string) {
 			fmt.Println("Hermes Autonomous Agent", version)
@@ -32,6 +32,7 @@ func main() {
 	rootCmd.AddCommand(cmd.NewResetCmd())
 	rootCmd.AddCommand(cmd.NewTaskCmd())
 	rootCmd.AddCommand(cmd.NewLogCmd())
+	rootCmd.AddCommand(cmd.NewIdeaCmd())
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
