@@ -39,5 +39,25 @@ func DefaultConfig() *Config {
 			FailureStrategy:    "continue",
 			MaxRetries:         2,
 		},
+		Web: WebConfig{
+			Enabled: true,
+			Port:    8080,
+			Host:    "127.0.0.1",
+			Auth: AuthConfig{
+				Enabled:      true,
+				SessionHours: 24,
+				DataFile:     ".hermes/auth.json",
+			},
+			CORS: CORSConfig{
+				AllowedOrigins:   []string{"*"},
+				AllowCredentials: true,
+			},
+			TLS: TLSConfig{
+				Enabled:  false,
+				CertFile: "",
+				KeyFile:  "",
+			},
+		},
 	}
 }
+

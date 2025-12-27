@@ -7,6 +7,7 @@ type Config struct {
 	Loop     LoopConfig     `json:"loop" mapstructure:"loop"`
 	Paths    PathsConfig    `json:"paths" mapstructure:"paths"`
 	Parallel ParallelConfig `json:"parallel" mapstructure:"parallel"`
+	Web      WebConfig      `json:"web" mapstructure:"web"`
 }
 
 // AIConfig contains AI provider settings
@@ -54,3 +55,34 @@ type ParallelConfig struct {
 	FailureStrategy    string  `json:"failureStrategy" mapstructure:"failureStrategy"`
 	MaxRetries         int     `json:"maxRetries" mapstructure:"maxRetries"`
 }
+
+// WebConfig contains web interface settings
+type WebConfig struct {
+	Enabled bool       `json:"enabled" mapstructure:"enabled"`
+	Port    int        `json:"port" mapstructure:"port"`
+	Host    string     `json:"host" mapstructure:"host"`
+	Auth    AuthConfig `json:"auth" mapstructure:"auth"`
+	CORS    CORSConfig `json:"cors" mapstructure:"cors"`
+	TLS     TLSConfig  `json:"tls" mapstructure:"tls"`
+}
+
+// AuthConfig contains authentication settings
+type AuthConfig struct {
+	Enabled      bool   `json:"enabled" mapstructure:"enabled"`
+	SessionHours int    `json:"sessionHours" mapstructure:"sessionHours"`
+	DataFile     string `json:"dataFile" mapstructure:"dataFile"`
+}
+
+// CORSConfig contains CORS settings
+type CORSConfig struct {
+	AllowedOrigins   []string `json:"allowedOrigins" mapstructure:"allowedOrigins"`
+	AllowCredentials bool     `json:"allowCredentials" mapstructure:"allowCredentials"`
+}
+
+// TLSConfig contains TLS/HTTPS settings
+type TLSConfig struct {
+	Enabled  bool   `json:"enabled" mapstructure:"enabled"`
+	CertFile string `json:"certFile" mapstructure:"certFile"`
+	KeyFile  string `json:"keyFile" mapstructure:"keyFile"`
+}
+
