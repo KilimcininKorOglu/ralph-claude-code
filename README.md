@@ -1,6 +1,6 @@
 # Hermes Autonomous Agent
 
-![Version](https://img.shields.io/badge/version-v1.2.2-blue)
+![Version](https://img.shields.io/badge/version-v1.2.3-blue)
 ![Status](https://img.shields.io/badge/status-beta-yellow)
 
 AI-powered autonomous application development system written in Go. Supports Claude, Droid, and Gemini CLIs with task-driven development, automatic branching, and circuit breaker protection.
@@ -92,6 +92,7 @@ hermes run --auto-branch --auto-commit
 | `hermes tui`         | Launch interactive TUI           |
 | `hermes reset`       | Reset circuit breaker            |
 | `hermes update`      | Check and install updates        |
+| `hermes install`     | Install to system PATH           |
 
 ## Idea Command Options
 

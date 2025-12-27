@@ -8,7 +8,7 @@ import (
 	"hermes/internal/cmd"
 )
 
-var version = "1.2.2"
+var version = "1.2.3"
 
 func main() {
 	rootCmd := &cobra.Command{
@@ -37,6 +37,7 @@ func main() {
 	// Set version for update command
 	cmd.SetUpdateVersion(version)
 	rootCmd.AddCommand(cmd.NewUpdateCmd())
+	rootCmd.AddCommand(cmd.NewInstallCmd())
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
