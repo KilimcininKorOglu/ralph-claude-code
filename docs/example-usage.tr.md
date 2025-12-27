@@ -257,6 +257,16 @@ hermes run --auto-branch --auto-commit --autonomous=false
 hermes run --ai gemini --auto-branch --auto-commit
 ```
 
+### Seçenek D: Paralel Yürütme (v2.0.0)
+
+```bash
+# Önce yürütme planını önizle
+hermes run --dry-run
+
+# 3 paralel worker ile çalıştır
+hermes run --parallel --workers 3 --auto-commit
+```
+
 **Çıktı:**
 
 ```

@@ -310,6 +310,9 @@ hermes run [bayraklar]
 | `--autonomous`  | true        | Duraklamadan çalıştır                 |
 | `--timeout`     | config'den  | AI zaman aşımı (saniye)               |
 | `--debug`       | false       | Hata ayıklama çıktısını etkinleştir   |
+| `--parallel`    | false       | Paralel yürütmeyi etkinleştir (v2.0.0)|
+| `--workers`     | 3           | Paralel çalışan sayısı                |
+| `--dry-run`     | false       | Sadece yürütme planını önizle         |
 
 ### Örnekler
 
@@ -328,6 +331,12 @@ hermes run --autonomous=false
 
 # Özel zaman aşımı ile
 hermes run --timeout 600
+
+# Paralel yürütme (v2.0.0)
+hermes run --parallel --workers 3
+
+# Yürütme planını çalıştırmadan önizle
+hermes run --dry-run
 ```
 
 ### AI Sağlayıcı Önceliği
@@ -337,6 +346,27 @@ hermes run --timeout 600
 1. Claude (`claude` komutu)
 2. Droid (`droid` komutu)
 3. Gemini (`gemini` komutu)
+
+### Paralel Yürütme (v2.0.0)
+
+Ayrı AI ajanları ile birden fazla bağımsız görevi eşzamanlı olarak yürütün:
+
+```bash
+# 3 worker ile paralel çalıştır
+hermes run --parallel --workers 3 --auto-commit
+
+# Yürütme planını önizle
+hermes run --dry-run
+```
+
+**Temel Özellikler:**
+
+- **Bağımlılık Grafiği**: Görev bağımlılıklarını otomatik olarak hesaplar
+- **Worker Havuzu**: Paralel çalışan birden fazla AI ajanı
+- **İzole Çalışma Alanları**: Her worker ayrı git worktree kullanır
+- **Çakışma Algılama**: Görevler arası dosya çakışmalarını algılar
+- **AI Destekli Birleştirme**: LLM karmaşık çakışmaları çözer
+- **Geri Alma Desteği**: Başarısızlıklarda otomatik kurtarma
 
 ### Yürütme Akışı
 
@@ -628,6 +658,20 @@ Hermes katmanlı yapılandırma kullanır:
 | `maxCallsPerHour`| int | 100        | Hız sınırı                  |
 | `timeoutMinutes` | int | 15         | Döngü zaman aşımı           |
 | `errorDelay`     | int | 10         | Hatadan sonra gecikme (sn)  |
+
+### Paralel Yapılandırma (v2.0.0)
+
+| Seçenek             | Tip    | Varsayılan        | Açıklama                      |
+|---------------------|--------|-------------------|-------------------------------|
+| `enabled`           | bool   | false             | Varsayılan olarak paralel aç  |
+| `maxWorkers`        | int    | 3                 | Maksimum paralel çalışan      |
+| `strategy`          | string | "branch-per-task" | Dallanma stratejisi           |
+| `conflictResolution`| string | "ai-assisted"     | Çakışma çözüm yöntemi         |
+| `isolatedWorkspaces`| bool   | true              | Git worktree kullan           |
+| `mergeStrategy`     | string | "sequential"      | Sonuçları birleştirme yöntemi |
+| `maxCostPerHour`    | float  | 0                 | Maliyet sınırı (0 = sınırsız) |
+| `failureStrategy`   | string | "continue"        | fail-fast veya continue       |
+| `maxRetries`        | int    | 2                 | Başarısız görevleri tekrar dene|
 
 ---
 

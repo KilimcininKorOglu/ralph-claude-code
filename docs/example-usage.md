@@ -257,6 +257,16 @@ hermes run --auto-branch --auto-commit --autonomous=false
 hermes run --ai gemini --auto-branch --auto-commit
 ```
 
+### Option D: Parallel Execution (v2.0.0)
+
+```bash
+# Preview execution plan first
+hermes run --dry-run
+
+# Run with 3 parallel workers
+hermes run --parallel --workers 3 --auto-commit
+```
+
 **Output:**
 
 ```

@@ -310,6 +310,9 @@ hermes run [flags]
 | `--autonomous`  | true        | Run without pausing                 |
 | `--timeout`     | from config | AI timeout in seconds               |
 | `--debug`       | false       | Enable debug output                 |
+| `--parallel`    | false       | Enable parallel execution (v2.0.0)  |
+| `--workers`     | 3           | Number of parallel workers          |
+| `--dry-run`     | false       | Preview execution plan only         |
 
 ### Examples
 
@@ -328,6 +331,12 @@ hermes run --autonomous=false
 
 # With custom timeout
 hermes run --timeout 600
+
+# Parallel execution (v2.0.0)
+hermes run --parallel --workers 3
+
+# Preview execution plan without running
+hermes run --dry-run
 ```
 
 ### AI Provider Priority
@@ -337,6 +346,51 @@ When using `--ai auto` (default), providers are tried in order:
 1. Claude (`claude` command)
 2. Droid (`droid` command)
 3. Gemini (`gemini` command)
+
+### Parallel Execution (v2.0.0)
+
+Execute multiple independent tasks simultaneously with separate AI agents:
+
+```bash
+# Enable parallel with 3 workers
+hermes run --parallel --workers 3 --auto-commit
+
+# Preview the execution plan
+hermes run --dry-run
+```
+
+**Key Features:**
+
+- **Dependency Graph**: Respects task dependencies automatically
+- **Worker Pool**: Multiple AI agents working in parallel
+- **Workspace Isolation**: Each worker uses separate git worktree
+- **Conflict Detection**: Detects file conflicts between tasks
+- **AI-Assisted Merge**: LLM resolves complex conflicts
+- **Rollback Support**: Automatic recovery on failures
+
+**Execution Plan Output:**
+
+```
+📋 Execution Plan
+═══════════════════════════════════════
+Total Tasks: 5
+Batches: 3
+Max Workers: 3
+
+Batch 1 (1 tasks):
+  [T001] Setup Database - P1 (parallel: ✓)
+  ↓
+Batch 2 (2 tasks):
+  [T002] Create Models - P1 (parallel: ✓)
+       └─ depends on: [T001]
+  [T003] Create API - P2 (parallel: ✓)
+       └─ depends on: [T001]
+  ↓
+Batch 3 (2 tasks):
+  [T004] Integration - P2 (parallel: ✓)
+       └─ depends on: [T002, T003]
+═══════════════════════════════════════
+```
 
 ### Execution Flow
 
@@ -628,6 +682,20 @@ Hermes uses layered configuration:
 | `maxCallsPerHour`| int  | 100     | Rate limit                |
 | `timeoutMinutes` | int  | 15      | Loop timeout              |
 | `errorDelay`     | int  | 10      | Delay after error (sec)   |
+
+### Parallel Configuration (v2.0.0)
+
+| Option              | Type   | Default           | Description                   |
+|---------------------|--------|-------------------|-------------------------------|
+| `enabled`           | bool   | false             | Enable parallel by default    |
+| `maxWorkers`        | int    | 3                 | Maximum parallel workers      |
+| `strategy`          | string | "branch-per-task" | Branching strategy            |
+| `conflictResolution`| string | "ai-assisted"     | Conflict resolution method    |
+| `isolatedWorkspaces`| bool   | true              | Use git worktrees             |
+| `mergeStrategy`     | string | "sequential"      | How to merge results          |
+| `maxCostPerHour`    | float  | 0                 | Cost limit (0 = unlimited)    |
+| `failureStrategy`   | string | "continue"        | fail-fast or continue         |
+| `maxRetries`        | int    | 2                 | Retry failed tasks            |
 
 ---
 
