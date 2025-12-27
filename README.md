@@ -318,6 +318,17 @@ Tags are only created if:
     "tasksDir": ".hermes/tasks",
     "logsDir": ".hermes/logs",
     "docsDir": ".hermes/docs"
+  },
+  "parallel": {
+    "enabled": false,
+    "maxWorkers": 3,
+    "strategy": "branch-per-task",
+    "conflictResolution": "ai-assisted",
+    "isolatedWorkspaces": true,
+    "mergeStrategy": "sequential",
+    "maxCostPerHour": 0,
+    "failureStrategy": "continue",
+    "maxRetries": 2
   }
 }
 ```
