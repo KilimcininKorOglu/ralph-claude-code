@@ -16,6 +16,7 @@ import (
 	"hermes/internal/config"
 	"hermes/internal/git"
 	"hermes/internal/prompt"
+	"hermes/internal/scheduler"
 	"hermes/internal/task"
 	"hermes/internal/ui"
 )
@@ -28,7 +29,9 @@ func NewRunCmd() *cobra.Command {
 		Long:  "Execute tasks from task files using Claude CLI",
 		Example: `  hermes run
   hermes run --auto-branch --auto-commit
-  hermes run --autonomous=false`,
+  hermes run --autonomous=false
+  hermes run --parallel --workers 3
+  hermes run --parallel --dry-run`,
 		RunE: runExecute,
 	}
 
@@ -38,6 +41,10 @@ func NewRunCmd() *cobra.Command {
 	cmd.Flags().Int("timeout", 0, "AI timeout in seconds (0 = use config)")
 	cmd.Flags().Bool("debug", false, "Enable debug output")
 	cmd.Flags().String("ai", "", "AI provider: claude, droid, gemini, auto (default: from config or auto)")
+	// Parallel execution flags
+	cmd.Flags().Bool("parallel", false, "Enable parallel task execution")
+	cmd.Flags().Int("workers", 3, "Number of parallel workers (default: 3)")
+	cmd.Flags().Bool("dry-run", false, "Show execution plan without running")
 
 	return cmd
 }
@@ -135,6 +142,25 @@ func runExecute(cmd *cobra.Command, args []string) error {
 
 	logger.Info("Using AI provider: %s", provider.Name())
 
+	// Check for parallel execution mode
+	parallel, _ := cmd.Flags().GetBool("parallel")
+	dryRun, _ := cmd.Flags().GetBool("dry-run")
+	workers, _ := cmd.Flags().GetInt("workers")
+
+	// Override with config if flag not set
+	if !cmd.Flags().Changed("parallel") {
+		parallel = cfg.Parallel.Enabled
+	}
+	if !cmd.Flags().Changed("workers") {
+		workers = cfg.Parallel.MaxWorkers
+	}
+
+	// Handle parallel execution
+	if parallel || dryRun {
+		return runParallel(ctx, cfg, provider, reader, logger, workers, dryRun)
+	}
+
+	// Sequential execution (original behavior)
 	loopNumber := 0
 	for {
 		select {
@@ -266,4 +292,165 @@ func runExecute(cmd *cobra.Command, args []string) error {
 			bufio.NewReader(os.Stdin).ReadBytes('\n')
 		}
 	}
+}
+
+// runParallel executes tasks in parallel mode
+func runParallel(ctx context.Context, cfg *config.Config, provider ai.Provider, reader *task.Reader, logger *ui.Logger, workers int, dryRun bool) error {
+	ui.PrintHeader("Parallel Task Execution")
+
+	// Get all pending tasks
+	allTasks, err := reader.GetAllTasks()
+	if err != nil {
+		return fmt.Errorf("failed to get tasks: %w", err)
+	}
+
+	// Filter to only NOT_STARTED tasks
+	var pendingTasks []*task.Task
+	for i := range allTasks {
+		if allTasks[i].Status == task.StatusNotStarted {
+			pendingTasks = append(pendingTasks, &allTasks[i])
+		}
+	}
+
+	if len(pendingTasks) == 0 {
+		logger.Success("No pending tasks to execute!")
+		return nil
+	}
+
+	logger.Info("Found %d pending tasks", len(pendingTasks))
+	logger.Info("Using %d parallel workers", workers)
+
+	// Update parallel config with CLI values
+	parallelCfg := cfg.Parallel
+	parallelCfg.MaxWorkers = workers
+
+	// Create scheduler
+	sched := scheduler.New(&parallelCfg, provider, ".", logger)
+
+	// Get execution plan
+	plan, err := sched.GetExecutionPlan(pendingTasks)
+	if err != nil {
+		return fmt.Errorf("failed to create execution plan: %w", err)
+	}
+
+	// Print execution plan
+	sched.PrintExecutionPlan(plan)
+
+	// If dry-run, stop here
+	if dryRun {
+		logger.Info("Dry run complete. Use --parallel without --dry-run to execute.")
+		return nil
+	}
+
+	// Initialize parallel logger
+	parallelLogger, err := scheduler.NewParallelLogger(".", workers)
+	if err != nil {
+		logger.Warn("Failed to initialize parallel logger: %v", err)
+	} else {
+		defer parallelLogger.Close()
+		logger.Info("Logs will be written to: %s", parallelLogger.GetLogDirectory())
+		// Connect logger to scheduler
+		sched.SetParallelLogger(parallelLogger)
+	}
+
+	// Initialize resource monitor
+	resourceMonitor := scheduler.NewResourceMonitor(
+		0, // No memory limit
+		0, // No CPU limit
+		cfg.Loop.MaxCallsPerHour,
+	)
+	if cfg.Parallel.MaxCostPerHour > 0 {
+		resourceMonitor.SetCostLimit(cfg.Parallel.MaxCostPerHour)
+	}
+
+	// Initialize rollback manager
+	rollback := scheduler.NewRollback(".")
+	defer func() {
+		// Cleanup on exit
+		if rollback.HasSnapshots() {
+			rollback.CleanupWorktrees()
+		}
+	}()
+
+	// Confirm execution
+	fmt.Println("\nPress Enter to start parallel execution or Ctrl+C to cancel...")
+	bufio.NewReader(os.Stdin).ReadBytes('\n')
+
+	// Save initial snapshot
+	if err := rollback.SaveSnapshot("INITIAL"); err != nil {
+		logger.Warn("Failed to save initial snapshot: %v", err)
+	}
+
+	// Log execution start
+	if parallelLogger != nil {
+		parallelLogger.Main("Starting parallel execution with %d workers", workers)
+		parallelLogger.Main("Total tasks: %d, Batches: %d", len(pendingTasks), len(plan.Batches))
+	}
+
+	// Execute tasks
+	logger.Info("Starting parallel execution...")
+	startTime := time.Now()
+
+	result, err := sched.Execute(ctx, pendingTasks)
+	
+	executionTime := time.Since(startTime)
+
+	if err != nil {
+		logger.Error("Parallel execution failed: %v", err)
+		if parallelLogger != nil {
+			parallelLogger.Main("Execution failed: %v", err)
+		}
+
+		// Offer rollback on failure
+		if result != nil && result.Failed > 0 {
+			fmt.Println("\nExecution failed. Would you like to rollback? (y/n)")
+			var response string
+			fmt.Scanln(&response)
+			if response == "y" || response == "Y" {
+				if err := rollback.RollbackAll(); err != nil {
+					logger.Error("Rollback failed: %v", err)
+				} else {
+					logger.Success("Rollback completed successfully")
+				}
+			}
+		}
+	}
+
+	// Print results
+	sched.PrintExecutionResult(result)
+
+	// Log completion
+	if parallelLogger != nil {
+		parallelLogger.ExecutionComplete(result.Successful, result.Failed)
+	}
+
+	// Print resource stats
+	stats := resourceMonitor.GetStats()
+	if stats.TotalAPICalls > 0 {
+		stats.Print()
+	}
+
+	// Print timing
+	fmt.Printf("\n⏱️  Total execution time: %v\n", executionTime.Round(time.Second))
+
+	// Update task statuses
+	statusUpdater := task.NewStatusUpdater(".")
+	for _, r := range result.Results {
+		if r.Success {
+			if err := statusUpdater.UpdateTaskStatus(r.TaskID, task.StatusCompleted); err != nil {
+				logger.Warn("Failed to update task %s status: %v", r.TaskID, err)
+			}
+		}
+	}
+
+	// Cleanup
+	rollback.CleanupWorktrees()
+	rollback.CleanupTaskBranches()
+
+	if result.Failed > 0 {
+		return fmt.Errorf("%d tasks failed", result.Failed)
+	}
+
+	logger.Success("All %d tasks completed successfully!", result.Successful)
+	return nil
 }

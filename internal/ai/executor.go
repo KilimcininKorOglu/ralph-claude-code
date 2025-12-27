@@ -75,6 +75,17 @@ func (e *TaskExecutor) ExecuteTaskStream(ctx context.Context, t *task.Task, prom
 	return e.provider.ExecuteStream(ctx, opts)
 }
 
+// ExecutePrompt executes a raw prompt without task context
+func (e *TaskExecutor) ExecutePrompt(ctx context.Context, prompt string, taskID string) (*ExecuteResult, error) {
+	opts := &ExecuteOptions{
+		Prompt:  prompt,
+		WorkDir: e.workDir,
+		Tools:   []string{"Read"}, // Limited tools for merge operations
+	}
+
+	return e.provider.Execute(ctx, opts)
+}
+
 func (e *TaskExecutor) buildTaskPrompt(t *task.Task, promptContent string) string {
 	return fmt.Sprintf(`%s
 
