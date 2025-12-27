@@ -14,11 +14,12 @@ import (
 
 // Scheduler manages parallel task execution
 type Scheduler struct {
-	config   *config.ParallelConfig
-	provider ai.Provider
-	workDir  string
-	logger   *ui.Logger
-	mu       sync.Mutex
+	config         *config.ParallelConfig
+	provider       ai.Provider
+	workDir        string
+	logger         *ui.Logger
+	parallelLogger *ParallelLogger
+	mu             sync.Mutex
 }
 
 // ExecutionPlan represents the planned execution order
@@ -46,6 +47,11 @@ func New(cfg *config.ParallelConfig, provider ai.Provider, workDir string, logge
 		workDir:  workDir,
 		logger:   logger,
 	}
+}
+
+// SetParallelLogger sets the parallel logger for per-worker logging
+func (s *Scheduler) SetParallelLogger(logger *ParallelLogger) {
+	s.parallelLogger = logger
 }
 
 // GetExecutionPlan returns the planned execution order without executing
@@ -145,7 +151,11 @@ func (s *Scheduler) executeBatch(ctx context.Context, graph *TaskGraph, batch []
 		workers = len(batch)
 	}
 
-	pool := NewWorkerPool(ctx, workers, s.provider, s.workDir)
+	pool := NewWorkerPoolWithConfig(ctx, s.provider, s.workDir, WorkerPoolConfig{
+		Workers:      workers,
+		UseIsolation: s.config.IsolatedWorkspaces,
+		Logger:       s.parallelLogger,
+	})
 	pool.Start()
 
 	// Mark tasks as running and submit to pool

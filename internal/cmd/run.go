@@ -349,6 +349,8 @@ func runParallel(ctx context.Context, cfg *config.Config, provider ai.Provider, 
 	} else {
 		defer parallelLogger.Close()
 		logger.Info("Logs will be written to: %s", parallelLogger.GetLogDirectory())
+		// Connect logger to scheduler
+		sched.SetParallelLogger(parallelLogger)
 	}
 
 	// Initialize resource monitor
