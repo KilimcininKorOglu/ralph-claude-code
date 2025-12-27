@@ -9,6 +9,7 @@ import (
 
 	"hermes/internal/auth"
 	"hermes/internal/config"
+	"hermes/internal/events"
 	"hermes/internal/project"
 )
 
@@ -18,6 +19,7 @@ type Server struct {
 	httpServer     *http.Server
 	authService    *auth.AuthService
 	projectManager *project.Manager
+	broker         *events.Broker
 	router         http.Handler
 }
 

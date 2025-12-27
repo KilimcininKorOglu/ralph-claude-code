@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"hermes/internal/auth"
+	"hermes/internal/events"
 	"hermes/internal/web/handlers"
 	"hermes/internal/web/middleware"
 )
@@ -17,6 +18,16 @@ func (s *Server) setupRoutes() http.Handler {
 
 	// API handlers
 	apiHandlers := handlers.NewAPIHandlers(s.projectManager)
+
+	// Event broker
+	s.broker = events.NewBroker()
+	s.broker.Start()
+
+	// WebSocket handler
+	wsHandler := handlers.NewWebSocketHandler(s.broker, s.authService)
+
+	// Execution handler
+	execHandler := handlers.NewExecutionHandler(s.projectManager, s.broker)
 
 	// Apply middleware stack
 	var handler http.Handler = mux
@@ -52,6 +63,14 @@ func (s *Server) setupRoutes() http.Handler {
 	mux.HandleFunc("GET /api/config", s.wrapAuth(apiHandlers.GetConfig))
 	mux.HandleFunc("PUT /api/config", s.wrapAuth(apiHandlers.UpdateConfig))
 
+	// Execution routes
+	mux.HandleFunc("GET /api/execution/status", s.wrapAuth(execHandler.GetStatus))
+	mux.HandleFunc("POST /api/execution/start", s.wrapAuth(execHandler.Start))
+	mux.HandleFunc("POST /api/execution/stop", s.wrapAuth(execHandler.Stop))
+
+	// WebSocket (token passed as query param)
+	mux.HandleFunc("GET /ws", wsHandler.HandleConnection)
+
 	// Static files (frontend)
 	mux.Handle("GET /", http.FileServer(http.Dir("web/dist")))
 
@@ -78,3 +97,4 @@ func (s *Server) wrapOptionalAuth(h http.HandlerFunc) http.HandlerFunc {
 		authMiddleware(h).ServeHTTP(w, r)
 	}
 }
+
