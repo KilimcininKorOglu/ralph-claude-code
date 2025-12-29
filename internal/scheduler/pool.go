@@ -40,6 +40,7 @@ type WorkerPool struct {
 	useIsolation   bool
 	workspaces     map[string]*isolation.Workspace
 	logger         *ParallelLogger
+	streamOutput   bool
 }
 
 // WorkerPoolConfig contains configuration for the worker pool
@@ -47,6 +48,7 @@ type WorkerPoolConfig struct {
 	Workers      int
 	UseIsolation bool
 	Logger       *ParallelLogger
+	StreamOutput bool
 }
 
 // NewWorkerPool creates a new worker pool
@@ -72,6 +74,7 @@ func NewWorkerPoolWithConfig(ctx context.Context, provider ai.Provider, workDir 
 		useIsolation: cfg.UseIsolation,
 		workspaces:   make(map[string]*isolation.Workspace),
 		logger:       cfg.Logger,
+		streamOutput: cfg.StreamOutput,
 	}
 }
 
@@ -169,7 +172,7 @@ func (p *WorkerPool) executeTask(workerID int, t *task.Task) *TaskResult {
 	promptContent := p.buildPromptContent(t)
 
 	// Execute the task
-	execResult, err := executor.ExecuteTask(p.ctx, t, promptContent, false)
+	execResult, err := executor.ExecuteTask(p.ctx, t, promptContent, p.streamOutput)
 
 	result.EndTime = time.Now()
 	result.Duration = result.EndTime.Sub(startTime)

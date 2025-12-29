@@ -32,7 +32,16 @@ func ExecuteWithRetry(ctx context.Context, provider Provider, opts *ExecuteOptio
 	delay := cfg.Delay
 
 	for attempt := 1; attempt <= cfg.MaxRetries; attempt++ {
-		result, err := provider.Execute(ctx, opts)
+		var result *ExecuteResult
+		var err error
+
+		// Use streaming if enabled
+		if opts.StreamOutput {
+			result, err = executeWithStreaming(ctx, provider, opts)
+		} else {
+			result, err = provider.Execute(ctx, opts)
+		}
+
 		if err == nil && result.Success {
 			return result, nil
 		}
@@ -59,4 +68,27 @@ func ExecuteWithRetry(ctx context.Context, provider Provider, opts *ExecuteOptio
 	}
 
 	return nil, fmt.Errorf("failed after %d attempts: %w", cfg.MaxRetries, lastErr)
+}
+
+// executeWithStreaming executes with real-time output to console
+func executeWithStreaming(ctx context.Context, provider Provider, opts *ExecuteOptions) (*ExecuteResult, error) {
+	events, err := provider.ExecuteStream(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	var output string
+	for event := range events {
+		switch event.Type {
+		case "text":
+			fmt.Print(event.Text)
+			output += event.Text
+		case "error":
+			return &ExecuteResult{Success: false, Output: output, Error: event.Text}, nil
+		case "done":
+			fmt.Println()
+		}
+	}
+
+	return &ExecuteResult{Success: true, Output: output}, nil
 }

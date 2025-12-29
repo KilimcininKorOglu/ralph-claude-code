@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 	"hermes/internal/ai"
@@ -76,11 +77,14 @@ func addExecute(featureDesc string, opts *addOptions) error {
 	// Build prompt
 	prompt := buildAddPrompt(featureDesc, nextFeatureID, nextTaskID)
 
-	// Execute
-	result, err := provider.Execute(ctx, &ai.ExecuteOptions{
+	// Execute with retry
+	result, err := ai.ExecuteWithRetry(ctx, provider, &ai.ExecuteOptions{
 		Prompt:       prompt,
 		Timeout:      opts.timeout,
 		StreamOutput: cfg.AI.StreamOutput,
+	}, &ai.RetryConfig{
+		MaxRetries: 3,
+		Delay:      5 * time.Second,
 	})
 
 	if err != nil {

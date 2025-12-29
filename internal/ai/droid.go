@@ -77,6 +77,9 @@ func (p *DroidProvider) Execute(ctx context.Context, opts *ExecuteOptions) (*Exe
 		return nil, fmt.Errorf("failed to get stdout pipe: %w", err)
 	}
 
+	// Redirect stderr to prevent blocking
+	cmd.Stderr = os.Stderr
+
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("failed to start droid: %w", err)
 	}
@@ -87,6 +90,10 @@ func (p *DroidProvider) Execute(ctx context.Context, opts *ExecuteOptions) (*Exe
 	}
 
 	scanner := bufio.NewScanner(stdout)
+	// Increase buffer size for large JSON lines
+	buf := make([]byte, 0, 64*1024)
+	scanner.Buffer(buf, 1024*1024) // 1MB max token size
+
 	for scanner.Scan() {
 		line := scanner.Text()
 		var event droidStreamEvent
@@ -156,12 +163,19 @@ func (p *DroidProvider) ExecuteStream(ctx context.Context, opts *ExecuteOptions)
 			return
 		}
 
+		// Redirect stderr to prevent blocking
+		cmd.Stderr = os.Stderr
+
 		if err := cmd.Start(); err != nil {
 			events <- StreamEvent{Type: "error", Text: err.Error()}
 			return
 		}
 
 		scanner := bufio.NewScanner(stdout)
+		// Increase buffer size for large JSON lines
+		buf := make([]byte, 0, 64*1024)
+		scanner.Buffer(buf, 1024*1024) // 1MB max token size
+
 		for scanner.Scan() {
 			line := scanner.Text()
 			var dEvent droidStreamEvent
@@ -178,7 +192,7 @@ func (p *DroidProvider) ExecuteStream(ctx context.Context, opts *ExecuteOptions)
 			case "message":
 				if dEvent.Role == "assistant" && dEvent.Text != "" {
 					events <- StreamEvent{
-						Type: "assistant",
+						Type: "text",
 						Text: dEvent.Text,
 					}
 				}

@@ -58,11 +58,15 @@ func (g *Generator) Generate(ctx context.Context, opts GenerateOptions) (*Genera
 	g.logger.Debug("Idea: %s", opts.Idea)
 	g.logger.Debug("Language: %s", opts.Language)
 
-	// Execute AI
-	result, err := g.provider.Execute(ctx, &ai.ExecuteOptions{
-		Prompt:  prompt,
-		WorkDir: ".",
-		Timeout: opts.Timeout,
+	// Execute AI with retry
+	result, err := ai.ExecuteWithRetry(ctx, g.provider, &ai.ExecuteOptions{
+		Prompt:       prompt,
+		WorkDir:      ".",
+		Timeout:      opts.Timeout,
+		StreamOutput: g.config.AI.StreamOutput,
+	}, &ai.RetryConfig{
+		MaxRetries: 3,
+		Delay:      5 * time.Second,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("AI execution failed: %w", err)
