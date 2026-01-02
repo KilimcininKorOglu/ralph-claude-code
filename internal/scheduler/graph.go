@@ -268,7 +268,10 @@ func (g *TaskGraph) TopologicalSort() ([]*task.Task, error) {
 
 // GetBatches returns tasks grouped by execution batch (parallelizable groups)
 // Only includes non-completed tasks, but respects dependencies from completed tasks
+// Maximum 5 tasks per batch to avoid overwhelming the system
 func (g *TaskGraph) GetBatches() ([][]*task.Task, error) {
+	const maxTasksPerBatch = 5
+
 	inDegree := make(map[string]int)
 	for id, node := range g.nodes {
 		// For completed tasks, set inDegree to -1 to skip them
@@ -293,30 +296,41 @@ func (g *TaskGraph) GetBatches() ([][]*task.Task, error) {
 	}
 
 	for remaining > 0 {
-		var batch []*task.Task
+		var readyTasks []*task.Task
 
 		// Find all tasks with in-degree 0 (dependencies satisfied)
 		for id, deg := range inDegree {
 			if deg == 0 {
-				batch = append(batch, g.nodes[id].Task)
+				readyTasks = append(readyTasks, g.nodes[id].Task)
 			}
 		}
 
-		if len(batch) == 0 && remaining > 0 {
+		if len(readyTasks) == 0 && remaining > 0 {
 			return nil, fmt.Errorf("cycle detected or all tasks blocked")
 		}
 
-		batches = append(batches, batch)
+		// Split ready tasks into batches of maxTasksPerBatch
+		for len(readyTasks) > 0 {
+			batchSize := len(readyTasks)
+			if batchSize > maxTasksPerBatch {
+				batchSize = maxTasksPerBatch
+			}
+			
+			batch := readyTasks[:batchSize]
+			readyTasks = readyTasks[batchSize:]
+			
+			batches = append(batches, batch)
 
-		// Remove this batch from consideration
-		for _, t := range batch {
-			inDegree[t.ID] = -1 // Mark as processed
-			remaining--
+			// Remove this batch from consideration
+			for _, t := range batch {
+				inDegree[t.ID] = -1 // Mark as processed
+				remaining--
 
-			// Reduce in-degree of dependents
-			for _, depID := range g.nodes[t.ID].Dependents {
-				if inDegree[depID] > 0 {
-					inDegree[depID]--
+				// Reduce in-degree of dependents
+				for _, depID := range g.nodes[t.ID].Dependents {
+					if inDegree[depID] > 0 {
+						inDegree[depID]--
+					}
 				}
 			}
 		}
