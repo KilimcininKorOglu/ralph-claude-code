@@ -279,17 +279,8 @@ func (g *TaskGraph) GetBatches() ([][]*task.Task, error) {
 		}
 	}
 
-	// Reduce in-degree for tasks whose dependencies are already completed
-	for _, node := range g.nodes {
-		if node.Status == NodeCompleted {
-			// This task is done, reduce in-degree of its dependents
-			for _, depID := range node.Dependents {
-				if inDegree[depID] > 0 {
-					inDegree[depID]--
-				}
-			}
-		}
-	}
+	// Note: In-degree already excludes completed dependencies (handled in NewTaskGraph)
+	// No need to reduce here again
 
 	var batches [][]*task.Task
 	
