@@ -298,27 +298,33 @@ func runExecute(cmd *cobra.Command, args []string) error {
 func runParallel(ctx context.Context, cfg *config.Config, provider ai.Provider, reader *task.Reader, logger *ui.Logger, workers int, dryRun bool) error {
 	ui.PrintHeader("Parallel Task Execution")
 
-	// Get all pending tasks
+	// Get all tasks (including completed for dependency resolution)
 	allTasks, err := reader.GetAllTasks()
 	if err != nil {
 		return fmt.Errorf("failed to get tasks: %w", err)
 	}
 
-	// Filter to only NOT_STARTED tasks
-	var pendingTasks []*task.Task
+	// Count pending tasks
+	pendingCount := 0
 	for i := range allTasks {
 		if allTasks[i].Status == task.StatusNotStarted {
-			pendingTasks = append(pendingTasks, &allTasks[i])
+			pendingCount++
 		}
 	}
 
-	if len(pendingTasks) == 0 {
+	if pendingCount == 0 {
 		logger.Success("No pending tasks to execute!")
 		return nil
 	}
 
-	logger.Info("Found %d pending tasks", len(pendingTasks))
+	logger.Info("Found %d pending tasks", pendingCount)
 	logger.Info("Using %d parallel workers", workers)
+
+	// Convert to pointer slice for scheduler (includes all tasks for dependency resolution)
+	allTaskPtrs := make([]*task.Task, len(allTasks))
+	for i := range allTasks {
+		allTaskPtrs[i] = &allTasks[i]
+	}
 
 	// Update parallel config with CLI values
 	parallelCfg := cfg.Parallel
@@ -327,8 +333,8 @@ func runParallel(ctx context.Context, cfg *config.Config, provider ai.Provider, 
 	// Create scheduler
 	sched := scheduler.New(&parallelCfg, provider, ".", logger)
 
-	// Get execution plan
-	plan, err := sched.GetExecutionPlan(pendingTasks)
+	// Get execution plan (uses all tasks for dependency resolution, but only executes pending)
+	plan, err := sched.GetExecutionPlan(allTaskPtrs)
 	if err != nil {
 		return fmt.Errorf("failed to create execution plan: %w", err)
 	}
@@ -384,14 +390,14 @@ func runParallel(ctx context.Context, cfg *config.Config, provider ai.Provider, 
 	// Log execution start
 	if parallelLogger != nil {
 		parallelLogger.Main("Starting parallel execution with %d workers", workers)
-		parallelLogger.Main("Total tasks: %d, Batches: %d", len(pendingTasks), len(plan.Batches))
+		parallelLogger.Main("Total tasks: %d, Batches: %d", pendingCount, len(plan.Batches))
 	}
 
 	// Execute tasks
 	logger.Info("Starting parallel execution...")
 	startTime := time.Now()
 
-	result, err := sched.Execute(ctx, pendingTasks)
+	result, err := sched.Execute(ctx, allTaskPtrs)
 	
 	executionTime := time.Since(startTime)
 

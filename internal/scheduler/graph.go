@@ -264,21 +264,46 @@ func (g *TaskGraph) TopologicalSort() ([]*task.Task, error) {
 }
 
 // GetBatches returns tasks grouped by execution batch (parallelizable groups)
+// Only includes non-completed tasks, but respects dependencies from completed tasks
 func (g *TaskGraph) GetBatches() ([][]*task.Task, error) {
 	inDegree := make(map[string]int)
 	for id, node := range g.nodes {
-		inDegree[id] = node.InDegree
+		// For completed tasks, set inDegree to -1 to skip them
+		if node.Status == NodeCompleted {
+			inDegree[id] = -1
+		} else {
+			inDegree[id] = node.InDegree
+		}
+	}
+
+	// Reduce in-degree for tasks whose dependencies are already completed
+	for _, node := range g.nodes {
+		if node.Status == NodeCompleted {
+			// This task is done, reduce in-degree of its dependents
+			for _, depID := range node.Dependents {
+				if inDegree[depID] > 0 {
+					inDegree[depID]--
+				}
+			}
+		}
 	}
 
 	var batches [][]*task.Task
-	remaining := len(g.nodes)
+	
+	// Count only non-completed tasks
+	remaining := 0
+	for _, deg := range inDegree {
+		if deg >= 0 {
+			remaining++
+		}
+	}
 
 	for remaining > 0 {
 		var batch []*task.Task
 
-		// Find all tasks with in-degree 0
+		// Find all tasks with in-degree 0 (dependencies satisfied)
 		for id, deg := range inDegree {
-			if deg == 0 && g.nodes[id].Status != NodeCompleted {
+			if deg == 0 {
 				batch = append(batch, g.nodes[id].Task)
 			}
 		}
