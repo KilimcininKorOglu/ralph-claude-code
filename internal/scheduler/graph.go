@@ -80,7 +80,10 @@ func NewTaskGraph(tasks []*task.Task) (*TaskGraph, error) {
 			if _, exists := g.nodes[depID]; !exists {
 				return nil, fmt.Errorf("task %s depends on non-existent task %s", t.ID, depID)
 			}
-			g.nodes[t.ID].InDegree++
+			// Only count non-completed dependencies toward in-degree
+			if g.nodes[depID].Task.Status != task.StatusCompleted {
+				g.nodes[t.ID].InDegree++
+			}
 			g.nodes[depID].Dependents = append(g.nodes[depID].Dependents, t.ID)
 		}
 	}
